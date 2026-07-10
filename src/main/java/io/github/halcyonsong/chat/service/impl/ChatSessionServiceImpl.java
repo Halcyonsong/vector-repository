@@ -1,11 +1,13 @@
 package io.github.halcyonsong.chat.service.impl;
 
 import com.alibaba.cloud.ai.memory.redis.RedissonRedisChatMemoryRepository;
+import io.github.halcyonsong.chat.constants.ChatHistoryConstants;
 import io.github.halcyonsong.chat.pojo.vo.ChatHistoryMessageVO;
 import io.github.halcyonsong.chat.pojo.vo.ChatHistoryPageVO;
 import io.github.halcyonsong.chat.pojo.vo.SessionVO;
 import io.github.halcyonsong.chat.service.ChatSessionService;
 import io.github.halcyonsong.chat.service.support.ChatHistoryStore;
+import io.github.halcyonsong.chat.service.support.ChatSessionRollbackSupport;
 import io.github.halcyonsong.chat.service.support.ChatSessionStore;
 import io.github.halcyonsong.common.enums.ResultCodeEnum;
 import io.github.halcyonsong.common.exception.BusinessException;
@@ -29,6 +31,7 @@ public class ChatSessionServiceImpl implements ChatSessionService {
     private final RedissonRedisChatMemoryRepository chatMemoryRepository;
     private final ChatSessionStore chatSessionStore;
     private final ChatHistoryStore chatHistoryStore;
+    private final ChatSessionRollbackSupport chatSessionRollbackSupport;
 
     @Override // 创建会话方法
     public SessionVO createSession() {
@@ -146,7 +149,38 @@ public class ChatSessionServiceImpl implements ChatSessionService {
         return chatHistoryStore.listHistory(sessionId, beforeIndex);
     }
 
+    @Override
+    public ChatHistoryPageVO rollbackLastRound(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            throw new BusinessException(ResultCodeEnum.PARAM_ERROR.getCode(), "sessionId 不能为空");
+        }
 
+        SessionVO sessionVO = getSession(sessionId);
+        if (sessionVO == null) {
+            throw new BusinessException(ResultCodeEnum.NOT_FOUND.getCode(), "会话不存在: " + sessionId);
+        }
+
+        // 回滚最近的一轮对话
+        List<ChatHistoryMessageVO> remainingHistory = chatSessionRollbackSupport.rollbackLastRound(sessionId);
+        // 更新会话时间戳
+        LocalDateTime now = LocalDateTime.now();
+        sessionVO.setUpdateTime(now);
+        chatSessionStore.saveSession(sessionVO);
+        chatSessionStore.refreshSessionIndex(sessionId, now);
+        // 更新会话游标
+        long total = remainingHistory.size();
+        int start = Math.max(0, remainingHistory.size() - ChatHistoryConstants.HISTORY_PAGE_SIZE);
+        List<ChatHistoryMessageVO> records = remainingHistory.subList(start, remainingHistory.size());
+
+        Integer nextCursor = start > 0 ? start : null;
+
+        return ChatHistoryPageVO.builder()
+                .records(records)
+                .nextCursor(nextCursor)
+                .hasMore(start > 0)
+                .total(total)
+                .build();
+    }
 
 
 }

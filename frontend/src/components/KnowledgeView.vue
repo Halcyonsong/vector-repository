@@ -4,12 +4,16 @@ import KnowledgeBaseList from './KnowledgeBaseList.vue'
 import KnowledgeHero from './KnowledgeHero.vue'
 import KnowledgeUploadForm from './KnowledgeUploadForm.vue'
 import UiIcon from './UiIcon.vue'
+import type { KnowledgeBaseUploadTaskVO } from '../types'
 
 interface Props {
   knowledgeBaseId: string
   knowledgeBases: string[]
   selectedFileName: string
   uploadStatusText: string
+  activeUploadTask: KnowledgeBaseUploadTaskVO | null
+  uploadProgressPercent: number
+  uploadProgressText: string
   isKnowledgeBaseListLoading: boolean
   isUploading: boolean
   deletingKnowledgeBaseId: string
@@ -61,6 +65,9 @@ const emit = defineEmits<{
         <KnowledgeUploadForm
           :knowledge-base-id="knowledgeBaseId"
           :upload-status-text="uploadStatusText"
+          :active-upload-task="activeUploadTask"
+          :upload-progress-percent="uploadProgressPercent"
+          :upload-progress-text="uploadProgressText"
           :is-uploading="isUploading"
           @update-knowledge-base-id="emit('updateKnowledgeBaseId', $event)"
           @select-file="emit('selectFile', $event)"

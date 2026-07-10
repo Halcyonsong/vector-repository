@@ -56,12 +56,14 @@ public class ChatServiceImpl implements ChatService {
         String question = chatDTO.getQuestion();
         String sessionId = chatDTO.getSessionId();
         // 初始化默认值
+        boolean finalAllowEmptyContext = normalizeAllowEmptyContext(chatDTO.getAllowEmptyContext());
         int finalTopK = normalizeTopK(chatDTO.getTopK());
         double finalSimilarityThreshold = normalizeSimilarityThreshold(chatDTO.getSimilarityThreshold());
 
-        log.info("chat start, sessionId={}, useKnowledgeBase={}, knowledgeBaseId={}, topK={}, similarityThreshold={}, questionLength={}",
+        log.info("chat start, sessionId={}, useKnowledgeBase={}, allowEmptyContext={}, knowledgeBaseId={}, topK={}, similarityThreshold={}, questionLength={}",
                 sessionId,
-                Boolean.TRUE.equals(chatDTO.getUseKnowledgeBase()),
+                chatDTO.getUseKnowledgeBase(),
+                finalAllowEmptyContext,
                 chatDTO.getKnowledgeBaseId(),
                 finalTopK,
                 finalSimilarityThreshold,
@@ -83,6 +85,7 @@ public class ChatServiceImpl implements ChatService {
             requestSpec = applyKnowledgeBaseAdvisor(
                     requestSpec,
                     chatDTO.getUseKnowledgeBase(),
+                    finalAllowEmptyContext,
                     chatDTO.getKnowledgeBaseId(),
                     finalTopK,
                     finalSimilarityThreshold
@@ -168,6 +171,7 @@ public class ChatServiceImpl implements ChatService {
     // 判断是否启用知识库方法
     private ChatClientRequestSpec applyKnowledgeBaseAdvisor(ChatClientRequestSpec requestSpec,
                                                             Boolean useKnowledgeBase,
+                                                            Boolean allowEmptyContext,
                                                             String knowledgeBaseId,
                                                             Integer topK,
                                                             Double similarityThreshold) {
@@ -180,14 +184,17 @@ public class ChatServiceImpl implements ChatService {
             throw new BusinessException(ResultCodeEnum.PARAM_ERROR.getCode(), "启用知识库时，knowledgeBaseId 不能为空");
         }
 
-        log.info("knowledge base enabled, knowledgeBaseId={}, topK={}, similarityThreshold={}",
-                  knowledgeBaseId, topK, similarityThreshold);
+        log.info("knowledge base enabled, allowEmptyContext={}, knowledgeBaseId={}, topK={}, similarityThreshold={}",
+                  allowEmptyContext, knowledgeBaseId, topK, similarityThreshold);
         return requestSpec.advisors(
-                ragAdvisorFactory.create(knowledgeBaseId, topK, similarityThreshold)
+                ragAdvisorFactory.create(allowEmptyContext, knowledgeBaseId, topK, similarityThreshold)
         );
     }
 
     // 初始化默认值
+    private boolean normalizeAllowEmptyContext(Boolean allowEmptyContext) {
+        return allowEmptyContext == null || allowEmptyContext;
+    }
     private int normalizeTopK(Integer topK) {
         return topK == null ? 3 : topK;
     }

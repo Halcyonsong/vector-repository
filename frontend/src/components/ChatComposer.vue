@@ -4,6 +4,7 @@ import { useAppConfig } from '../config/app-config'
 interface Props {
   question: string
   useKnowledgeBase: boolean
+  allowEmptyContext: boolean
   knowledgeBaseId: string
   knowledgeBases: string[]
   topKInput: string
@@ -25,12 +26,28 @@ const chatText = appConfig.labels.chat
 const emit = defineEmits<{
   updateQuestion: [value: string]
   updateUseKnowledgeBase: [value: boolean]
+  updateAllowEmptyContext: [value: boolean]
   updateKnowledgeBaseId: [value: string]
   updateTopKInput: [value: string]
   updateSimilarityThresholdInput: [value: string]
   send: []
   stop: []
 }>()
+
+function formatPlaceholder(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce((result, [key, value]) => {
+    return result.replace(`{${key}}`, String(value))
+  }, template)
+}
+
+function handleQuestionKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Enter' || event.shiftKey || event.isComposing) {
+    return
+  }
+
+  event.preventDefault()
+  emit('send')
+}
 </script>
 
 <template>
@@ -39,12 +56,24 @@ const emit = defineEmits<{
       <label class="switch-field">
         <span class="switch-label">{{ chatText.toggleKnowledgeBase }}</span>
         <span class="switch-control">
-        <input
-          :checked="useKnowledgeBase"
-          type="checkbox"
-          @change="emit('updateUseKnowledgeBase', ($event.target as HTMLInputElement).checked)"
-        />
-        <span class="switch-track"><span class="switch-thumb"></span></span>
+          <input
+            :checked="useKnowledgeBase"
+            type="checkbox"
+            @change="emit('updateUseKnowledgeBase', ($event.target as HTMLInputElement).checked)"
+          />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </span>
+      </label>
+
+      <label class="switch-field forward-switch-field">
+        <span class="switch-label">{{ chatText.allowEmptyContextLabel }}</span>
+        <span class="switch-control">
+          <input
+            :checked="allowEmptyContext"
+            type="checkbox"
+            @change="emit('updateAllowEmptyContext', ($event.target as HTMLInputElement).checked)"
+          />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
         </span>
       </label>
 
@@ -66,7 +95,11 @@ const emit = defineEmits<{
         <input
           :value="topKInput"
           inputmode="numeric"
-          :placeholder="`留空默认 ${behaviorConfig.defaultTopK}，范围 ${behaviorConfig.topKRange.min}-${behaviorConfig.topKRange.max}`"
+          :placeholder="formatPlaceholder(chatText.topKPlaceholder, {
+            default: behaviorConfig.defaultTopK,
+            min: behaviorConfig.topKRange.min,
+            max: behaviorConfig.topKRange.max
+          })"
           @input="emit('updateTopKInput', ($event.target as HTMLInputElement).value)"
         />
       </label>
@@ -76,7 +109,11 @@ const emit = defineEmits<{
         <input
           :value="similarityThresholdInput"
           inputmode="decimal"
-          :placeholder="`留空默认 ${behaviorConfig.defaultSimilarityThreshold}，范围 ${behaviorConfig.similarityThresholdRange.min}-${behaviorConfig.similarityThresholdRange.max}`"
+          :placeholder="formatPlaceholder(chatText.similarityThresholdPlaceholder, {
+            default: behaviorConfig.defaultSimilarityThreshold,
+            min: behaviorConfig.similarityThresholdRange.min,
+            max: behaviorConfig.similarityThresholdRange.max
+          })"
           @input="emit('updateSimilarityThresholdInput', ($event.target as HTMLInputElement).value)"
         />
       </label>
@@ -104,6 +141,7 @@ const emit = defineEmits<{
         rows="4"
         :placeholder="chatText.questionPlaceholder"
         @input="emit('updateQuestion', ($event.target as HTMLTextAreaElement).value)"
+        @keydown="handleQuestionKeydown"
       ></textarea>
     </label>
 

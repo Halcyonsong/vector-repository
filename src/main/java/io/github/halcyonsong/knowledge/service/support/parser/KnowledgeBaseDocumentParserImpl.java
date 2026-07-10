@@ -1,4 +1,4 @@
-package io.github.halcyonsong.knowledge.service.support;
+package io.github.halcyonsong.knowledge.service.support.parser;
 
 import io.github.halcyonsong.common.enums.ResultCodeEnum;
 import io.github.halcyonsong.common.exception.BusinessException;
@@ -16,7 +16,6 @@ import org.apache.poi.sl.usermodel.TextShape;
 import org.springframework.ai.document.Document;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -32,25 +31,27 @@ import java.util.Map;
 public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentParser {
 
 
-    @Override // 解析文档方法
-    public List<Document> parse(String knowledgeBaseId,
-                                MultipartFile file,
+    @Override
+    public List<Document> parse(String taskId,
+                                String knowledgeBaseId,
+                                byte[] fileBytes,
                                 String fileName,
                                 String fileType) throws Exception {
         return switch (fileType) {
-            case "txt" -> buildTxtDocuments(knowledgeBaseId, file, fileName, fileType);
-            case "pdf" -> buildPdfDocuments(knowledgeBaseId, file, fileName, fileType);
-            case "ppt", "pptx" -> buildPowerPointDocuments(knowledgeBaseId, file, fileName, fileType);
+            case "txt" -> buildTxtDocuments(taskId, knowledgeBaseId, fileBytes, fileName, fileType);
+            case "pdf" -> buildPdfDocuments(taskId, knowledgeBaseId, fileBytes, fileName, fileType);
+            case "ppt", "pptx" -> buildPowerPointDocuments(taskId, knowledgeBaseId, fileBytes, fileName, fileType);
             default -> throw new IllegalArgumentException("当前不支持的文件类型: " + fileType);
         };
     }
 
     // 解析txt文档
-    private List<Document> buildTxtDocuments(String knowledgeBaseId,
-                                             MultipartFile file,
+    private List<Document> buildTxtDocuments(String taskId,
+                                             String knowledgeBaseId,
+                                             byte[] fileBytes,
                                              String fileName,
-                                             String fileType) throws Exception {
-        String content = new String(file.getBytes(), StandardCharsets.UTF_8);
+                                             String fileType) {
+        String content = new String(fileBytes, StandardCharsets.UTF_8);
         List<String> chunks = TextChunkUtil.splitText(content, 800, 100);
 
         List<Document> documentList = new ArrayList<>();
@@ -62,7 +63,7 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
 
             Document document = Document.builder()
                     .text(chunkText)
-                    .metadata(mergeMetadata(null, knowledgeBaseId, fileName, fileType, index))
+                    .metadata(mergeMetadata(null, taskId, knowledgeBaseId, fileName, fileType, index))
                     .build();
 
             documentList.add(document);
@@ -72,18 +73,18 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
     }
 
     // 解析pdf文档
-    private List<Document> buildPdfDocuments(String knowledgeBaseId,
-                                             MultipartFile file,
+    private List<Document> buildPdfDocuments(String taskId,
+                                             String knowledgeBaseId,
+                                             byte[] fileBytes,
                                              String fileName,
-                                             String fileType) throws Exception {
+                                             String fileType) {
         try {
-            byte[] fileBytes = file.getBytes();
-
             try (PDDocument pdfDocument = Loader.loadPDF(fileBytes)) {
                 PDFTextStripper textStripper = new PDFTextStripper();
                 int totalPages = pdfDocument.getNumberOfPages();
 
                 List<Document> documentList = new ArrayList<>();
+                // 当前仅按页解析，后续可考虑按段落语义解析等
                 for (int pageIndex = 1; pageIndex <= totalPages; pageIndex++) {
                     textStripper.setStartPage(pageIndex);
                     textStripper.setEndPage(pageIndex);
@@ -95,6 +96,7 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
 
                     Map<String, Object> metadata = mergeMetadata(
                             null,
+                            taskId,
                             knowledgeBaseId,
                             fileName,
                             fileType,
@@ -135,13 +137,14 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
     }
 
 
-    private List<Document> buildPowerPointDocuments(String knowledgeBaseId,
-                                                    MultipartFile file,
+    private List<Document> buildPowerPointDocuments(String taskId,
+                                                    String knowledgeBaseId,
+                                                    byte[] fileBytes,
                                                     String fileName,
                                                     String fileType) throws Exception {
         List<Document> documentList = new ArrayList<>();
 
-        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(file.getBytes());
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(fileBytes);
              SlideShow<?, ?> slideShow = SlideShowFactory.create(inputStream)) {
 
             List<? extends Slide<?, ?>> slides = slideShow.getSlides();
@@ -155,6 +158,7 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
 
                 Map<String, Object> metadata = mergeMetadata(
                         null,
+                        taskId,
                         knowledgeBaseId,
                         fileName,
                         fileType,
@@ -193,6 +197,7 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
     }
 
     private Map<String, Object> mergeMetadata(Map<String, Object> originalMetadata,
+                                              String taskId,
                                               String knowledgeBaseId,
                                               String fileName,
                                               String fileType,
@@ -202,6 +207,7 @@ public class KnowledgeBaseDocumentParserImpl implements KnowledgeBaseDocumentPar
             metadata.putAll(originalMetadata);
         }
 
+        metadata.put(KnowledgeMetadataConstants.TASK_ID, taskId);
         metadata.put(KnowledgeMetadataConstants.KNOWLEDGE_BASE_ID, knowledgeBaseId);
         metadata.put(KnowledgeMetadataConstants.FILE_NAME, fileName);
         metadata.put(KnowledgeMetadataConstants.FILE_TYPE, fileType);

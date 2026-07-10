@@ -22,4 +22,6 @@ public interface ChatSessionService {
 
     ChatHistoryPageVO listHistory(String sessionId, Integer beforeIndex);
 
+    ChatHistoryPageVO rollbackLastRound(String sessionId);
+
 }

@@ -2,10 +2,14 @@
 import { ref } from 'vue'
 import { useAppConfig } from '../config/app-config'
 import UiIcon from './UiIcon.vue'
+import type { KnowledgeBaseUploadTaskVO } from '../types'
 
 interface Props {
   knowledgeBaseId: string
   uploadStatusText: string
+  activeUploadTask: KnowledgeBaseUploadTaskVO | null
+  uploadProgressPercent: number
+  uploadProgressText: string
   isUploading: boolean
 }
 
@@ -58,12 +62,14 @@ function handleDrop(event: DragEvent): void {
       <input
         :value="knowledgeBaseId"
         :placeholder="knowledgeText.knowledgeBasePlaceholder"
+        :disabled="isUploading"
         @input="emit('updateKnowledgeBaseId', ($event.target as HTMLInputElement).value)"
       />
     </label>
 
     <label
       :class="['dropzone-field', isDragActive ? 'active' : '']"
+      :aria-disabled="isUploading"
       @dragenter.prevent="handleDragEnter"
       @dragover.prevent
       @dragleave.prevent="handleDragLeave"
@@ -73,9 +79,9 @@ function handleDrop(event: DragEvent): void {
         class="dropzone-input"
         type="file"
         accept=".txt,.pdf,.ppt,.pptx,text/plain,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        :disabled="isUploading"
         @change="emit('selectFile', $event)"
       />
-      <span class="dropzone-icon"><UiIcon name="upload" /></span>
       <span class="dropzone-copy">{{ knowledgeText.dropzoneTitle }}</span>
       <small>{{ knowledgeText.dropzoneDescription }}</small>
     </label>
@@ -87,9 +93,40 @@ function handleDrop(event: DragEvent): void {
     </div>
 
     <div class="upload-actions">
-      <button class="primary-button" :disabled="isUploading" @click="emit('upload')">{{ isUploading ? knowledgeText.uploadingButton : knowledgeText.uploadButton }}</button>
+      <button class="primary-button" :disabled="isUploading" @click="emit('upload')">{{ isUploading ? knowledgeText.taskRunningButton : knowledgeText.uploadButton }}</button>
       <button class="secondary-button" @click="emit('backToChat')">{{ knowledgeText.backButton }}</button>
     </div>
+
+    <section v-if="activeUploadTask" class="upload-task-panel">
+      <div class="upload-task-head">
+        <div>
+          <h3>{{ knowledgeText.taskProgressTitle }}</h3>
+        </div>
+        <strong>{{ uploadProgressPercent }}%</strong>
+      </div>
+      <div class="upload-progress-track">
+        <span :style="{ width: `${uploadProgressPercent}%` }"></span>
+      </div>
+      <p>{{ uploadProgressText }}</p>
+      <div class="upload-task-grid">
+        <div>
+          <span>{{ knowledgeText.taskStatusLabel }}</span>
+          <strong>{{ activeUploadTask.status }}</strong>
+        </div>
+        <div>
+          <span>{{ knowledgeText.taskChunksLabel }}</span>
+          <strong>{{ activeUploadTask.processedChunks }}/{{ activeUploadTask.totalChunks }}</strong>
+        </div>
+        <div>
+          <span>{{ knowledgeText.taskBatchesLabel }}</span>
+          <strong>{{ activeUploadTask.currentBatch }}/{{ activeUploadTask.totalBatches }}</strong>
+        </div>
+        <div class="task-id-cell">
+          <span>{{ knowledgeText.taskIdLabel }}</span>
+          <strong :title="activeUploadTask.taskId">{{ activeUploadTask.taskId }}</strong>
+        </div>
+      </div>
+    </section>
 
     <p v-if="uploadStatusText" class="success-text">{{ uploadStatusText }}</p>
   </article>

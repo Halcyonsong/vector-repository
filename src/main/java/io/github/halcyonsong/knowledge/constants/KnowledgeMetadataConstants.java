@@ -12,6 +12,7 @@ public final class KnowledgeMetadataConstants {
     public static final String UPLOAD_TIME = "uploadTime";
     public static final String SLIDE_NUMBER = "slideNumber";
     public static final String PAGE_NUMBER = "pageNumber";
+    public static final String TASK_ID = "taskId";
 
 
 }

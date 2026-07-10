@@ -14,9 +14,9 @@ import org.springframework.stereotype.Component;
 public class RagAdvisorFactory {
 
     private final VectorStore vectorStore;
-    private final ContextualQueryAugmenter contextualQueryAugmenter;
 
-    public RetrievalAugmentationAdvisor create(String knowledgeBaseId,
+    public RetrievalAugmentationAdvisor create(Boolean allowEmptyContext,
+                                               String knowledgeBaseId,
                                                Integer topK,
                                                Double similarityThreshold) {
         FilterExpressionBuilder filterExpressionBuilder = new FilterExpressionBuilder();
@@ -29,6 +29,11 @@ public class RagAdvisorFactory {
                         filterExpressionBuilder.eq(KnowledgeMetadataConstants.KNOWLEDGE_BASE_ID, knowledgeBaseId).build()
                 )
                 .build();
+
+        ContextualQueryAugmenter contextualQueryAugmenter = ContextualQueryAugmenter.builder()
+                .allowEmptyContext(Boolean.TRUE.equals(allowEmptyContext))
+                .build();
+
 
         return RetrievalAugmentationAdvisor.builder()
                 .documentRetriever(documentRetriever)

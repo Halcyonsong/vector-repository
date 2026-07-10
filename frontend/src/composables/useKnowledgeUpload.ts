@@ -1,7 +1,16 @@
-import { computed, ref, type Ref } from 'vue'
+import { computed, onBeforeUnmount, ref, type Ref } from 'vue'
 import { useAppConfig } from '../config/app-config'
-import { deleteKnowledgeBase, getErrorKind, listKnowledgeBases, uploadDocument } from '../api'
-import type { ErrorKind } from '../types'
+import {
+  deleteKnowledgeBase,
+  getErrorKind,
+  getKnowledgeBaseUploadTask,
+  listKnowledgeBases,
+  uploadDocument
+} from '../api'
+import type { ErrorKind, KnowledgeBaseUploadTaskVO } from '../types'
+
+const ACTIVE_UPLOAD_STATUSES = new Set(['pending', 'parsing', 'embedding'])
+const FINISHED_UPLOAD_STATUSES = new Set(['completed', 'failed'])
 
 interface UseKnowledgeUploadOptions {
   knowledgeBaseId: Ref<string>
@@ -11,14 +20,17 @@ interface UseKnowledgeUploadOptions {
 
 export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
   const appConfig = useAppConfig()
+  const behaviorConfig = appConfig.behavior
   const knowledgeText = appConfig.labels.knowledge
   const uiText = appConfig.labels.ui
   const knowledgeBases = ref<string[]>([])
   const selectedFile = ref<File | null>(null)
   const uploadStatusText = ref('')
+  const activeUploadTask = ref<KnowledgeBaseUploadTaskVO | null>(null)
   const isKnowledgeBaseListLoading = ref(false)
-  const isUploading = ref(false)
+  const isSubmittingUpload = ref(false)
   const deletingKnowledgeBaseId = ref('')
+  let pollTimer: number | null = null
 
   const selectedFileName = computed(() => {
     return selectedFile.value ? selectedFile.value.name : uiText.noFileSelected
@@ -28,12 +40,85 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
     return knowledgeBases.value.length > 0
   })
 
+  const hasActiveUploadTask = computed(() => {
+    return activeUploadTask.value !== null && ACTIVE_UPLOAD_STATUSES.has(activeUploadTask.value.status)
+  })
+
+  const isUploading = computed(() => {
+    return isSubmittingUpload.value || hasActiveUploadTask.value
+  })
+
+  const uploadProgressPercent = computed(() => {
+    const task = activeUploadTask.value
+    if (!task) {
+      return 0
+    }
+    if (task.status === 'completed') {
+      return 100
+    }
+    if (!task.totalChunks || task.totalChunks <= 0) {
+      return ACTIVE_UPLOAD_STATUSES.has(task.status) ? 8 : 0
+    }
+
+    return Math.min(99, Math.round((task.processedChunks / task.totalChunks) * 100))
+  })
+
+  const uploadProgressText = computed(() => {
+    const task = activeUploadTask.value
+    if (!task) {
+      return ''
+    }
+    if (task.status === 'completed') {
+      return knowledgeText.taskCompletedMessage
+    }
+    if (task.status === 'failed') {
+      return task.errorMessage || knowledgeText.taskFailedMessage
+    }
+    return task.message || knowledgeText.taskPendingMessage
+  })
+
+  function clearPollTimer(): void {
+    if (pollTimer !== null) {
+      window.clearTimeout(pollTimer)
+      pollTimer = null
+    }
+  }
+
+  function scheduleUploadTaskPolling(taskId: string): void {
+    clearPollTimer()
+    pollTimer = window.setTimeout(() => {
+      void pollUploadTask(taskId)
+    }, behaviorConfig.uploadTaskPollIntervalMs)
+  }
+
+  function isTaskFinished(task: KnowledgeBaseUploadTaskVO): boolean {
+    return FINISHED_UPLOAD_STATUSES.has(task.status)
+  }
+
+  function guardUploadLocked(): boolean {
+    if (!hasActiveUploadTask.value && !isSubmittingUpload.value) {
+      return false
+    }
+
+    options.setError(uiText.uploadTaskRunning, 'validation')
+    return true
+  }
+
   function selectFile(event: Event): void {
     const input = event.target as HTMLInputElement
+    if (guardUploadLocked()) {
+      input.value = ''
+      return
+    }
+
     selectedFile.value = input.files && input.files.length > 0 ? input.files[0] : null
   }
 
   function selectDroppedFile(file: File): void {
+    if (guardUploadLocked()) {
+      return
+    }
+
     selectedFile.value = file
   }
 
@@ -49,8 +134,37 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
     }
   }
 
+  async function pollUploadTask(taskId: string): Promise<void> {
+    try {
+      const task = await getKnowledgeBaseUploadTask(taskId)
+      activeUploadTask.value = task
+      uploadStatusText.value = uploadProgressText.value
+
+      if (!isTaskFinished(task)) {
+        scheduleUploadTaskPolling(task.taskId)
+        return
+      }
+
+      clearPollTimer()
+      if (task.status === 'completed') {
+        uploadStatusText.value = `${knowledgeText.taskCompletedMessage}: ${task.processedChunks}${uiText.uploadSuccessSuffix}`
+        await loadKnowledgeBases()
+        return
+      }
+
+      options.setError(task.errorMessage || knowledgeText.taskFailedMessage, 'document')
+    } catch (error) {
+      clearPollTimer()
+      options.setError(error instanceof Error ? error.message : uiText.uploadFailed, getErrorKind(error))
+    }
+  }
+
   async function uploadSelectedDocument(): Promise<void> {
     options.clearError()
+
+    if (guardUploadLocked()) {
+      return
+    }
     uploadStatusText.value = ''
 
     if (!selectedFile.value) {
@@ -62,24 +176,35 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
       return
     }
 
-    isUploading.value = true
+    isSubmittingUpload.value = true
 
     try {
       const targetKnowledgeBaseId = options.knowledgeBaseId.value.trim()
-      const chunkCount = await uploadDocument(targetKnowledgeBaseId, selectedFile.value)
-      uploadStatusText.value = `${uiText.uploadSuccessPrefix}${chunkCount}${uiText.uploadSuccessSuffix}`
+      const task = await uploadDocument(targetKnowledgeBaseId, selectedFile.value)
+      activeUploadTask.value = task
+      uploadStatusText.value = task.message || knowledgeText.taskPendingMessage
       selectedFile.value = null
-      await loadKnowledgeBases()
+
+      if (isTaskFinished(task)) {
+        await pollUploadTask(task.taskId)
+        return
+      }
+
+      scheduleUploadTaskPolling(task.taskId)
     } catch (error) {
       options.setError(error instanceof Error ? error.message : uiText.uploadFailed, getErrorKind(error))
     } finally {
-      isUploading.value = false
+      isSubmittingUpload.value = false
     }
   }
 
   async function deleteExistingKnowledgeBase(knowledgeBaseId: string): Promise<void> {
     const normalizedKnowledgeBaseId = knowledgeBaseId.trim()
     if (!normalizedKnowledgeBaseId) {
+      return
+    }
+
+    if (guardUploadLocked()) {
       return
     }
 
@@ -104,14 +229,22 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
     }
   }
 
+  onBeforeUnmount(() => {
+    clearPollTimer()
+  })
+
   return {
     knowledgeBases,
     selectedFileName,
     uploadStatusText,
+    activeUploadTask,
+    uploadProgressPercent,
+    uploadProgressText,
     isKnowledgeBaseListLoading,
     isUploading,
     deletingKnowledgeBaseId,
     hasKnowledgeBases,
+    hasActiveUploadTask,
     selectFile,
     selectDroppedFile,
     loadKnowledgeBases,

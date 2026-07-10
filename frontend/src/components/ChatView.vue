@@ -13,15 +13,20 @@ interface Props {
   statusText: string
   messages: ChatHistoryMessageVO[]
   historyScrollKey: number
+  hasMoreHistory: boolean
+  isLoadingEarlierHistory: boolean
   reasoningText: string
   hasConversation: boolean
   useKnowledgeBase: boolean
+  allowEmptyContext: boolean
   knowledgeBaseId: string
   knowledgeBases: string[]
   topKInput: string
   similarityThresholdInput: string
   isStreaming: boolean
   hasOutputError: boolean
+  errorTitle: string
+  errorMessage: string
   startupElapsedText: string
   reasoningElapsedText: string
   answerElapsedText: string
@@ -39,9 +44,13 @@ const uiText = appConfig.labels.ui
 const emit = defineEmits<{
   updateQuestion: [value: string]
   updateUseKnowledgeBase: [value: boolean]
+  updateAllowEmptyContext: [value: boolean]
   updateKnowledgeBaseId: [value: string]
   updateTopKInput: [value: string]
   updateSimilarityThresholdInput: [value: string]
+  loadEarlierHistory: []
+  rollbackLatestRound: []
+  undoLatestRound: [question: string]
   send: []
   stop: []
 }>()
@@ -51,6 +60,10 @@ const knowledgeBaseStatus = computed(() => {
     return chatText.knowledgeDisabled
   }
   return chatText.knowledgeEnabled
+})
+
+const allowEmptyContextStatus = computed(() => {
+  return props.allowEmptyContext ? chatText.allowEmptyContextEnabled : chatText.allowEmptyContextDisabled
 })
 
 const activeTopK = computed(() => {
@@ -78,9 +91,17 @@ const topbarKnowledgeBaseId = computed(() => {
         <span>Status</span>
         <strong>{{ statusText }}</strong>
       </div>
+      <div v-if="hasOutputError" class="topbar-inline-item error-item" :title="errorMessage">
+        <span>{{ errorTitle }}</span>
+        <strong>{{ errorMessage }}</strong>
+      </div>
       <div :class="['topbar-inline-item knowledge-item', useKnowledgeBase ? 'active' : '']">
         <span>Knowledge</span>
         <strong>{{ knowledgeBaseStatus }}</strong>
+      </div>
+      <div :class="['topbar-inline-item forward-item', allowEmptyContext ? 'active' : 'blocked']">
+        <span>{{ chatText.allowEmptyContextLabel }}</span>
+        <strong>{{ allowEmptyContextStatus }}</strong>
       </div>
       <div class="topbar-inline-item kb-item" :title="topbarKnowledgeBaseId">
         <span>Knowledge Base</span>
@@ -105,15 +126,25 @@ const topbarKnowledgeBaseId = computed(() => {
           </div>
         </div>
 
-        <ConversationStream
-          :messages="messages"
-          :has-conversation="hasConversation"
-          :history-scroll-key="historyScrollKey"
-        />
+        <Transition name="session-slide" mode="out-in">
+          <ConversationStream
+            :key="activeSessionDisplayId"
+            :messages="messages"
+            :has-conversation="hasConversation"
+            :history-scroll-key="historyScrollKey"
+            :has-more-history="hasMoreHistory"
+            :is-loading-earlier-history="isLoadingEarlierHistory"
+            :is-streaming="isStreaming"
+            @load-earlier-history="emit('loadEarlierHistory')"
+            @rollback-latest-round="emit('rollbackLatestRound')"
+            @undo-latest-round="emit('undoLatestRound', $event)"
+          />
+        </Transition>
 
         <ChatComposer
           :question="question"
           :use-knowledge-base="useKnowledgeBase"
+          :allow-empty-context="allowEmptyContext"
           :knowledge-base-id="knowledgeBaseId"
           :knowledge-bases="knowledgeBases"
           :top-k-input="topKInput"
@@ -126,6 +157,7 @@ const topbarKnowledgeBaseId = computed(() => {
           :show-answer-timer="showAnswerTimer"
           @update-question="emit('updateQuestion', $event)"
           @update-use-knowledge-base="emit('updateUseKnowledgeBase', $event)"
+          @update-allow-empty-context="emit('updateAllowEmptyContext', $event)"
           @update-knowledge-base-id="emit('updateKnowledgeBaseId', $event)"
           @update-top-k-input="emit('updateTopKInput', $event)"
           @update-similarity-threshold-input="emit('updateSimilarityThresholdInput', $event)"

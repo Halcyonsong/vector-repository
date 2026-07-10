@@ -2,6 +2,7 @@ package io.github.halcyonsong.chat.service.support;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.halcyonsong.chat.constants.ChatHistoryConstants;
 import io.github.halcyonsong.chat.pojo.vo.ChatHistoryMessageVO;
 import io.github.halcyonsong.chat.pojo.vo.ChatHistoryPageVO;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,6 @@ import java.util.List;
 public class ChatHistoryStore {
 
     private static final String CHAT_HISTORY_KEY_PREFIX = "chat:history:";
-    private static final int HISTORY_PAGE_SIZE = 10;
 
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
@@ -84,7 +84,7 @@ public class ChatHistoryStore {
                     .build();
         }
         // start 表示从哪里开始查
-        long start = Math.max(0, end - HISTORY_PAGE_SIZE + 1);
+        long start = Math.max(0, end - ChatHistoryConstants.HISTORY_PAGE_SIZE + 1);
 
         List<String> messageJsonList = stringRedisTemplate.opsForList()
                 .range(buildHistoryKey(sessionId), start, end);
@@ -119,7 +119,54 @@ public class ChatHistoryStore {
                 .build();
     }
 
+    // 列表查询所有历史消息
+    public List<ChatHistoryMessageVO> listAllHistory(String sessionId) {
+        if (!StringUtils.hasText(sessionId)) {
+            throw new IllegalArgumentException("sessionId 不能为空");
+        }
 
+        List<String> messageJsonList = stringRedisTemplate.opsForList().range(buildHistoryKey(sessionId), 0, -1);
+        if (messageJsonList == null || messageJsonList.isEmpty()) {
+            return List.of();
+        }
+
+        List<ChatHistoryMessageVO> historyList = new ArrayList<>(messageJsonList.size());
+        for (String messageJson : messageJsonList) {
+            try {
+                ChatHistoryMessageVO message = objectMapper.readValue(messageJson, ChatHistoryMessageVO.class);
+                historyList.add(message);
+            } catch (JsonProcessingException exception) {
+                throw new IllegalStateException("历史消息反序列化失败: " + sessionId, exception);
+            }
+        }
+
+        return historyList;
+    }
+    // 替换会话历史回写
+    public void replaceHistory(String sessionId, List<ChatHistoryMessageVO> historyList) {
+        if (!StringUtils.hasText(sessionId)) {
+            throw new IllegalArgumentException("sessionId 不能为空");
+        }
+        if (historyList == null) {
+            throw new IllegalArgumentException("historyList 不能为空");
+        }
+
+        deleteHistory(sessionId);
+        if (historyList.isEmpty()) {
+            return;
+        }
+
+        List<String> jsonList = new ArrayList<>(historyList.size());
+        for (ChatHistoryMessageVO message : historyList) {
+            try {
+                jsonList.add(objectMapper.writeValueAsString(message));
+            } catch (JsonProcessingException exception) {
+                throw new IllegalStateException("历史消息序列化失败: " + sessionId, exception);
+            }
+        }
+
+        stringRedisTemplate.opsForList().rightPushAll(buildHistoryKey(sessionId), jsonList);
+    }
 
 
 }

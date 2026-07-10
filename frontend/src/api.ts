@@ -3,8 +3,10 @@ import { RESULT_CODE } from './constants'
 import type {
   ChatEvent,
   ChatHistoryMessageVO,
+  ChatHistoryPageVO,
   ChatRequest,
   ErrorKind,
+  KnowledgeBaseUploadTaskVO,
   RenameSessionRequest,
   Result,
   SessionVO
@@ -91,9 +93,9 @@ function formatResultErrorMessage(result: Result<unknown>, fallbackMessage: stri
 
   const details = Object.entries(data as Record<string, unknown>)
     .map(([field, value]) => `${field}: ${String(value)}`)
-    .join('；')
+    .join(', ')
 
-  return details ? `${message}：${details}` : message
+  return details ? `${message}: ${details}` : message
 }
 
 function buildResultError(result: Result<unknown>, fallbackMessage: string): ApiError {
@@ -158,11 +160,43 @@ export async function getSession(sessionId: string): Promise<SessionVO | null> {
   return data ?? null
 }
 
-export async function listSessionHistory(sessionId: string): Promise<ChatHistoryMessageVO[]> {
+export async function listSessionHistory(sessionId: string, beforeIndex?: number | null): Promise<ChatHistoryPageVO> {
   const params = new URLSearchParams({ sessionId })
+  if (beforeIndex !== undefined && beforeIndex !== null) {
+    params.set('beforeIndex', String(beforeIndex))
+  }
+
   const response = await fetchSafely(`${getBehaviorConfig().apiBaseUrl}/ai/session/history?${params.toString()}`)
-  const data = await parseResult<ChatHistoryMessageVO[]>(response)
-  return data ?? []
+  const data = await parseResult<ChatHistoryPageVO | ChatHistoryMessageVO[]>(response)
+  if (Array.isArray(data)) {
+    return {
+      records: data,
+      nextCursor: null,
+      hasMore: false,
+      total: data.length
+    }
+  }
+
+  return data ?? {
+    records: [],
+    nextCursor: null,
+    hasMore: false,
+    total: 0
+  }
+}
+
+export async function rollbackLastRound(sessionId: string): Promise<ChatHistoryPageVO> {
+  const params = new URLSearchParams({ sessionId })
+  const response = await fetchSafely(`${getBehaviorConfig().apiBaseUrl}/ai/session/rollback?${params.toString()}`, {
+    method: 'POST'
+  })
+  const data = await parseResult<ChatHistoryPageVO>(response)
+  return data ?? {
+    records: [],
+    nextCursor: null,
+    hasMore: false,
+    total: 0
+  }
 }
 
 export async function deleteSession(sessionId: string): Promise<boolean> {
@@ -185,7 +219,7 @@ export async function renameSession(payload: RenameSessionRequest): Promise<Sess
   return parseResult<SessionVO>(response)
 }
 
-export async function uploadDocument(knowledgeBaseId: string, file: File): Promise<number> {
+export async function uploadDocument(knowledgeBaseId: string, file: File): Promise<KnowledgeBaseUploadTaskVO> {
   const formData = new FormData()
   formData.append('knowledgeBaseId', knowledgeBaseId)
   formData.append('file', file)
@@ -195,7 +229,13 @@ export async function uploadDocument(knowledgeBaseId: string, file: File): Promi
     body: formData
   })
 
-  return parseResult<number>(response)
+  return parseResult<KnowledgeBaseUploadTaskVO>(response)
+}
+
+export async function getKnowledgeBaseUploadTask(taskId: string): Promise<KnowledgeBaseUploadTaskVO> {
+  const params = new URLSearchParams({ taskId })
+  const response = await fetchSafely(`${getBehaviorConfig().apiBaseUrl}/ai/kb/task?${params.toString()}`)
+  return parseResult<KnowledgeBaseUploadTaskVO>(response)
 }
 
 export async function listKnowledgeBases(): Promise<string[]> {
@@ -297,7 +337,11 @@ export async function stopChat(sessionId: string): Promise<void> {
   const contentType = response.headers.get('content-type') || ''
   if (!contentType) {
     if (!response.ok) {
-      throw new ApiError(buildHttpErrorMessage(response, `${getUiText().stopRequestFailed}: `), resolveErrorKind(response.status), response.status)
+      throw new ApiError(
+        buildHttpErrorMessage(response, `${getUiText().stopRequestFailed}: `),
+        resolveErrorKind(response.status),
+        response.status
+      )
     }
     return
   }

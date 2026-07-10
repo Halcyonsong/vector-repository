@@ -1,5 +1,5 @@
 import { computed, ref, type Ref } from 'vue'
-import { getErrorKind, listSessionHistory, stopChat, streamChat } from '../api'
+import { getErrorKind, listSessionHistory, rollbackLastRound, stopChat, streamChat } from '../api'
 import { useAppConfig } from '../config/app-config'
 import { CHAT_STATUS } from '../constants'
 import { useChatTimers } from './useChatTimers'
@@ -38,8 +38,12 @@ export function useChat(options: UseChatOptions) {
 
   const question = ref('')
   const historyMessages = ref<ChatHistoryMessageVO[]>([])
+  const historyNextCursor = ref<number | null>(null)
+  const hasMoreHistory = ref(false)
+  const isLoadingEarlierHistory = ref(false)
   const lastSubmittedQuestion = ref('')
   const useKnowledgeBase = ref(false)
+  const allowEmptyContext = ref(true)
   const topKInput = ref('')
   const similarityThresholdInput = ref('')
   const reasoningText = ref('')
@@ -75,6 +79,12 @@ export function useChat(options: UseChatOptions) {
     return displayMessages.value.length > 0 || reasoningText.value.length > 0
   })
 
+  function resetHistoryPaging(): void {
+    historyNextCursor.value = null
+    hasMoreHistory.value = false
+    isLoadingEarlierHistory.value = false
+  }
+
   function resetTransientConversation(shouldResetTimers = true): void {
     reasoningText.value = ''
     answerText.value = ''
@@ -87,6 +97,7 @@ export function useChat(options: UseChatOptions) {
 
   function resetConversation(): void {
     historyMessages.value = []
+    resetHistoryPaging()
     reasoningCache.clear()
     resetTransientConversation()
   }
@@ -101,10 +112,15 @@ export function useChat(options: UseChatOptions) {
     const resolvedSessionId = sessionId ?? options.getActiveSessionId()
     if (!resolvedSessionId) {
       historyMessages.value = []
+      resetHistoryPaging()
       return
     }
 
-    historyMessages.value = await listSessionHistory(resolvedSessionId)
+    const page = await listSessionHistory(resolvedSessionId)
+    historyMessages.value = page.records ?? []
+    historyNextCursor.value = page.nextCursor
+    hasMoreHistory.value = page.hasMore
+
     const preservedReasoningText = preserveTimers ? reasoningText.value : ''
     resetTransientConversation(!preserveTimers)
     if (preserveTimers) {
@@ -112,6 +128,50 @@ export function useChat(options: UseChatOptions) {
       return
     }
     reasoningText.value = reasoningCache.read(resolvedSessionId)
+  }
+
+  async function loadEarlierHistory(): Promise<void> {
+    const sessionId = options.getActiveSessionId()
+    if (!sessionId || !hasMoreHistory.value || isLoadingEarlierHistory.value) {
+      return
+    }
+
+    isLoadingEarlierHistory.value = true
+
+    try {
+      const page = await listSessionHistory(sessionId, historyNextCursor.value)
+      historyMessages.value = [...(page.records ?? []), ...historyMessages.value]
+      historyNextCursor.value = page.nextCursor
+      hasMoreHistory.value = page.hasMore
+    } catch (error) {
+      options.setError(error instanceof Error ? error.message : uiText.earlierHistoryFailed, getErrorKind(error))
+    } finally {
+      isLoadingEarlierHistory.value = false
+    }
+  }
+
+  async function rollbackLatestRound(restoreQuestion?: string): Promise<void> {
+    const sessionId = options.getActiveSessionId()
+    if (!sessionId || isStreaming.value) {
+      return
+    }
+
+    options.clearError()
+
+    try {
+      const page = await rollbackLastRound(sessionId)
+      historyMessages.value = page.records ?? []
+      historyNextCursor.value = page.nextCursor
+      hasMoreHistory.value = page.hasMore
+      resetTransientConversation()
+      reasoningCache.clear()
+      if (restoreQuestion !== undefined) {
+        question.value = restoreQuestion
+      }
+      await options.reloadSessions()
+    } catch (error) {
+      options.setError(error instanceof Error ? error.message : uiText.rollbackFailed, getErrorKind(error))
+    }
   }
 
   function appendReasoning(eventData: string): void {
@@ -160,12 +220,12 @@ export function useChat(options: UseChatOptions) {
   }
 
   function validateBeforeSend(sessionId: string): boolean {
-    if (!sessionId) {
-      options.setError(uiText.sessionCreateRequired, 'validation')
-      return false
-    }
     if (!question.value.trim()) {
       options.setError(uiText.questionRequired, 'validation')
+      return false
+    }
+    if (!sessionId) {
+      options.setError(uiText.sessionCreateRequired, 'validation')
       return false
     }
     if (useKnowledgeBase.value && !options.knowledgeBaseId.value.trim()) {
@@ -219,6 +279,7 @@ export function useChat(options: UseChatOptions) {
           question: question.value,
           sessionId,
           useKnowledgeBase: useKnowledgeBase.value,
+          allowEmptyContext: allowEmptyContext.value,
           knowledgeBaseId: options.knowledgeBaseId.value.trim(),
           topK,
           similarityThreshold
@@ -250,9 +311,13 @@ export function useChat(options: UseChatOptions) {
   return {
     question,
     historyMessages,
+    historyNextCursor,
+    hasMoreHistory,
+    isLoadingEarlierHistory,
     displayMessages,
     lastSubmittedQuestion,
     useKnowledgeBase,
+    allowEmptyContext,
     topKInput,
     similarityThresholdInput,
     reasoningText,
@@ -267,6 +332,8 @@ export function useChat(options: UseChatOptions) {
     showReasoningTimer: timers.showReasoningTimer,
     showAnswerTimer: timers.showAnswerTimer,
     loadHistory,
+    loadEarlierHistory,
+    rollbackLatestRound,
     resetConversation,
     send,
     stop

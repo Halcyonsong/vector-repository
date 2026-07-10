@@ -19,7 +19,7 @@ const DOCUMENT_KEYWORDS = [
   '未解析到',
   '可向量化',
   '可用文本',
-  '图片型 pdf',
+  '图片型pdf',
   '损坏内容'
 ]
 

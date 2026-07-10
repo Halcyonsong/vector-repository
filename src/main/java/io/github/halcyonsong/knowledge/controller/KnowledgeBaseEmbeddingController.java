@@ -1,6 +1,7 @@
 package io.github.halcyonsong.knowledge.controller;
 
 import io.github.halcyonsong.common.result.Result;
+import io.github.halcyonsong.knowledge.pojo.vo.KnowledgeBaseUploadTaskVO;
 import io.github.halcyonsong.knowledge.service.KnowledgeBaseEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -17,9 +18,14 @@ public class KnowledgeBaseEmbeddingController {
     private final KnowledgeBaseEmbeddingService knowledgeBaseEmbeddingService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<Integer> uploadDocument(@RequestParam("knowledgeBaseId") String knowledgeBaseId,
-                                          @RequestParam("file") MultipartFile file) throws Exception {
+    public Result<KnowledgeBaseUploadTaskVO> uploadDocument(@RequestParam("knowledgeBaseId") String knowledgeBaseId,
+                                                            @RequestParam("file") MultipartFile file) throws Exception {
         return Result.success(knowledgeBaseEmbeddingService.uploadDocument(knowledgeBaseId, file));
+    }
+
+    @GetMapping("/task")
+    public Result<KnowledgeBaseUploadTaskVO> getUploadTask(@RequestParam("taskId") String taskId) {
+        return Result.success(knowledgeBaseEmbeddingService.getUploadTask(taskId));
     }
 
     @DeleteMapping("/delete")
@@ -32,6 +38,4 @@ public class KnowledgeBaseEmbeddingController {
     public Result<List<String>> listKnowledgeBases() {
         return Result.success(knowledgeBaseEmbeddingService.listKnowledgeBases());
     }
-
-
 }

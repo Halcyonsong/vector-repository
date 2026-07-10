@@ -1,7 +1,7 @@
 :root {
   color-scheme: light;
-  --bg: #ebe4d8;
-  --bg-deep: #d9cfbf;
+  --bg: #eee6da;
+  --bg-deep: #d8cdbb;
   --sidebar: #1e1a16;
   --sidebar-soft: #2a241e;
   --panel: rgba(255, 251, 245, 0.88);
@@ -56,10 +56,10 @@ body {
   margin: 0;
   color: var(--text);
   background:
-    radial-gradient(circle at 7% 8%, rgba(255, 247, 232, 0.95) 0%, transparent 30%),
-    radial-gradient(circle at 84% 14%, rgba(203, 90, 49, 0.16) 0%, transparent 24%),
-    radial-gradient(circle at 78% 86%, rgba(35, 104, 75, 0.1) 0%, transparent 24%),
-    linear-gradient(135deg, #f1eadf 0%, var(--bg) 48%, var(--bg-deep) 100%);
+    radial-gradient(circle at 8% 7%, rgba(255, 248, 236, 0.96) 0%, transparent 31%),
+    radial-gradient(circle at 84% 13%, rgba(203, 90, 49, 0.14) 0%, transparent 24%),
+    radial-gradient(circle at 80% 88%, rgba(35, 104, 75, 0.11) 0%, transparent 25%),
+    linear-gradient(135deg, #f4ece0 0%, var(--bg) 48%, var(--bg-deep) 100%);
   overflow: hidden;
 }
 
@@ -98,7 +98,7 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 12px 14px;
-  background: rgba(255, 252, 247, 0.86);
+  background: rgba(255, 253, 249, 0.88);
   color: var(--text);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }

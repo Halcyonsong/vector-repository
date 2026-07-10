@@ -21,6 +21,8 @@ public class ChatDTO {
     private String sessionId;
     // 是否启用知识库
     private Boolean useKnowledgeBase;
+    // 没有检索到知识时，是否允许继续请求大模型
+    private Boolean allowEmptyContext;
     // 指定使用哪个知识库
     private String knowledgeBaseId;
     // 检索返回的最大文档数，可为空，默认3

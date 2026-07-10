@@ -16,6 +16,7 @@ export interface ChatRequest {
   question: string
   sessionId: string
   useKnowledgeBase: boolean
+  allowEmptyContext: boolean
   knowledgeBaseId: string
   topK: number
   similarityThreshold: number
@@ -24,6 +25,22 @@ export interface ChatRequest {
 export interface RenameSessionRequest {
   sessionId: string
   title: string
+}
+
+export interface KnowledgeBaseUploadTaskVO {
+  taskId: string
+  knowledgeBaseId: string
+  fileName: string
+  status: 'pending' | 'parsing' | 'embedding' | 'completed' | 'failed' | string
+  message: string
+  errorMessage: string | null
+  totalChunks: number
+  processedChunks: number
+  batchSize: number
+  currentBatch: number
+  totalBatches: number
+  startTime: string
+  finishTime: string | null
 }
 
 export interface ChatEvent {
@@ -36,6 +53,13 @@ export interface ChatHistoryMessageVO {
   content: string
   status: 'completed' | 'interrupted' | 'error' | string
   createTime: string
+}
+
+export interface ChatHistoryPageVO {
+  records: ChatHistoryMessageVO[]
+  nextCursor: number | null
+  hasMore: boolean
+  total: number
 }
 
 export interface SessionGroup {

@@ -1,6 +1,7 @@
 package io.github.halcyonsong.chat.config;
 
 import com.alibaba.cloud.ai.memory.redis.RedissonRedisChatMemoryRepository;
+import io.github.halcyonsong.chat.constants.ChatMemoryConstants;
 import org.springframework.ai.chat.memory.MessageWindowChatMemory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -30,7 +31,7 @@ public class RedisMemoryConfig {
                 // 底层记忆存储仓库
                 .chatMemoryRepository(redissonRedisChatMemoryRepository)
                 // 单个会话最多保留多少条消息，超过窗口会滚动淘汰旧消息
-                .maxMessages(20)
+                .maxMessages(ChatMemoryConstants.MEMORY_MAX_MESSAGES)
                 .build();
     }
 

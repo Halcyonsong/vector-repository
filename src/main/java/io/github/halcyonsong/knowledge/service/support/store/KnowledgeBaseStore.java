@@ -1,4 +1,4 @@
-package io.github.halcyonsong.knowledge.service.support;
+package io.github.halcyonsong.knowledge.service.support.store;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;

@@ -52,6 +52,9 @@ public class ChatSessionController {
         return Result.success(chatSessionService.listHistory(sessionId, beforeIndex));
     }
 
-
+    @PostMapping("/rollback")
+    public Result<ChatHistoryPageVO> rollbackLastRound(@RequestParam("sessionId") String sessionId) {
+        return Result.success(chatSessionService.rollbackLastRound(sessionId));
+    }
 
 }
