@@ -33,7 +33,7 @@ public class WebLogAspect {
     public void controllerPointcut() {
     }
 
-    @Around("controllerPointcut() && !within(io.github.halcyonsong.chat.controller.ChatController)")
+    @Around("controllerPointcut() && !within(io.github.halcyonsong.chat.stream.controller.ChatController)")
     public Object doAround(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
 

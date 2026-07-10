@@ -44,6 +44,7 @@ const {
 const {
   question,
   displayMessages,
+  systemPromptInput,
   useKnowledgeBase,
   allowEmptyContext,
   topKInput,
@@ -51,6 +52,7 @@ const {
   reasoningText,
   statusText,
   isStreaming,
+  isStopping,
   hasConversation,
   startupElapsedText,
   reasoningElapsedText,
@@ -191,6 +193,7 @@ onMounted(async () => {
           :active-session-title="activeSessionTitle"
           :active-session-display-id="activeSessionId"
           :question="question"
+          :system-prompt-input="systemPromptInput"
           :status-text="statusText"
           :messages="displayMessages"
           :history-scroll-key="historyScrollKey"
@@ -205,6 +208,7 @@ onMounted(async () => {
           :top-k-input="topKInput"
           :similarity-threshold-input="similarityThresholdInput"
           :is-streaming="isStreaming"
+          :is-stopping="isStopping"
           :has-output-error="errorState !== null"
           :error-title="errorTitle"
           :error-message="errorMessage"
@@ -215,6 +219,7 @@ onMounted(async () => {
           :show-reasoning-timer="showReasoningTimer"
           :show-answer-timer="showAnswerTimer"
           @update-question="question = $event"
+          @update-system-prompt-input="systemPromptInput = $event"
           @update-use-knowledge-base="useKnowledgeBase = $event"
           @update-allow-empty-context="allowEmptyContext = $event"
           @update-knowledge-base-id="knowledgeBaseId = $event"

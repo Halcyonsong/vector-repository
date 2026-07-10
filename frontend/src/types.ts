@@ -15,6 +15,7 @@ export interface Result<T> {
 export interface ChatRequest {
   question: string
   sessionId: string
+  systemPrompt: string
   useKnowledgeBase: boolean
   allowEmptyContext: boolean
   knowledgeBaseId: string

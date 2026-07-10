@@ -2,8 +2,8 @@ package io.github.halcyonsong.knowledge.service.impl;
 
 import io.github.halcyonsong.common.enums.ResultCodeEnum;
 import io.github.halcyonsong.common.exception.BusinessException;
-import io.github.halcyonsong.knowledge.constants.KnowledgeMetadataConstants;
-import io.github.halcyonsong.knowledge.enums.FileTypeEnum;
+import io.github.halcyonsong.knowledge.common.constants.KnowledgeMetadataConstants;
+import io.github.halcyonsong.knowledge.common.enums.FileTypeEnum;
 import io.github.halcyonsong.knowledge.pojo.vo.KnowledgeBaseUploadTaskVO;
 import io.github.halcyonsong.knowledge.service.KnowledgeBaseEmbeddingService;
 import io.github.halcyonsong.knowledge.service.support.store.KnowledgeBaseStore;

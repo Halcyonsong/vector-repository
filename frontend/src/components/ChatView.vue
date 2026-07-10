@@ -10,6 +10,7 @@ interface Props {
   activeSessionTitle: string
   activeSessionDisplayId: string
   question: string
+  systemPromptInput: string
   statusText: string
   messages: ChatHistoryMessageVO[]
   historyScrollKey: number
@@ -24,6 +25,7 @@ interface Props {
   topKInput: string
   similarityThresholdInput: string
   isStreaming: boolean
+  isStopping: boolean
   hasOutputError: boolean
   errorTitle: string
   errorMessage: string
@@ -43,6 +45,7 @@ const uiText = appConfig.labels.ui
 
 const emit = defineEmits<{
   updateQuestion: [value: string]
+  updateSystemPromptInput: [value: string]
   updateUseKnowledgeBase: [value: boolean]
   updateAllowEmptyContext: [value: boolean]
   updateKnowledgeBaseId: [value: string]
@@ -77,6 +80,14 @@ const activeSimilarityThreshold = computed(() => {
 const topbarKnowledgeBaseId = computed(() => {
   return props.knowledgeBaseId.trim() || uiText.notConfigured
 })
+
+const serviceStatusTitle = computed(() => {
+  return props.hasOutputError ? props.errorTitle : chatText.serviceStatusLabel
+})
+
+const serviceStatusMessage = computed(() => {
+  return props.hasOutputError ? props.errorMessage : chatText.serviceStatusNormal
+})
 </script>
 
 <template>
@@ -91,9 +102,9 @@ const topbarKnowledgeBaseId = computed(() => {
         <span>Status</span>
         <strong>{{ statusText }}</strong>
       </div>
-      <div v-if="hasOutputError" class="topbar-inline-item error-item" :title="errorMessage">
-        <span>{{ errorTitle }}</span>
-        <strong>{{ errorMessage }}</strong>
+      <div :class="['topbar-inline-item service-item', hasOutputError ? 'error' : 'normal']" :title="serviceStatusMessage">
+        <span>{{ serviceStatusTitle }}</span>
+        <strong>{{ serviceStatusMessage }}</strong>
       </div>
       <div :class="['topbar-inline-item knowledge-item', useKnowledgeBase ? 'active' : '']">
         <span>Knowledge</span>
@@ -143,6 +154,7 @@ const topbarKnowledgeBaseId = computed(() => {
 
         <ChatComposer
           :question="question"
+          :system-prompt-input="systemPromptInput"
           :use-knowledge-base="useKnowledgeBase"
           :allow-empty-context="allowEmptyContext"
           :knowledge-base-id="knowledgeBaseId"
@@ -150,12 +162,14 @@ const topbarKnowledgeBaseId = computed(() => {
           :top-k-input="topKInput"
           :similarity-threshold-input="similarityThresholdInput"
           :is-streaming="isStreaming"
+          :is-stopping="isStopping"
           :has-output-error="hasOutputError"
           :startup-elapsed-text="startupElapsedText"
           :answer-elapsed-text="answerElapsedText"
           :show-startup-timer="showStartupTimer"
           :show-answer-timer="showAnswerTimer"
           @update-question="emit('updateQuestion', $event)"
+          @update-system-prompt-input="emit('updateSystemPromptInput', $event)"
           @update-use-knowledge-base="emit('updateUseKnowledgeBase', $event)"
           @update-allow-empty-context="emit('updateAllowEmptyContext', $event)"
           @update-knowledge-base-id="emit('updateKnowledgeBaseId', $event)"

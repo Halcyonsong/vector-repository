@@ -2,7 +2,7 @@ package io.github.halcyonsong.knowledge.service.support.upload;
 
 import io.github.halcyonsong.common.enums.ResultCodeEnum;
 import io.github.halcyonsong.common.exception.BusinessException;
-import io.github.halcyonsong.knowledge.constants.KnowledgeMetadataConstants;
+import io.github.halcyonsong.knowledge.common.constants.KnowledgeMetadataConstants;
 import io.github.halcyonsong.knowledge.service.support.parser.KnowledgeBaseDocumentParser;
 import io.github.halcyonsong.knowledge.service.support.store.KnowledgeBaseStore;
 import io.github.halcyonsong.knowledge.service.support.store.KnowledgeBaseUploadLockStore;

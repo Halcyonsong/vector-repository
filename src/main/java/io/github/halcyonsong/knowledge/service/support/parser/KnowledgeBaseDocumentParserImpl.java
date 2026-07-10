@@ -2,8 +2,8 @@ package io.github.halcyonsong.knowledge.service.support.parser;
 
 import io.github.halcyonsong.common.enums.ResultCodeEnum;
 import io.github.halcyonsong.common.exception.BusinessException;
-import io.github.halcyonsong.knowledge.constants.KnowledgeMetadataConstants;
-import io.github.halcyonsong.knowledge.util.TextChunkUtil;
+import io.github.halcyonsong.knowledge.common.constants.KnowledgeMetadataConstants;
+import io.github.halcyonsong.knowledge.common.util.TextChunkUtil;
 import lombok.RequiredArgsConstructor;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;

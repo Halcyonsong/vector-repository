@@ -12,6 +12,9 @@
   --muted: #6f6558;
   --line: rgba(101, 84, 65, 0.16);
   --line-strong: rgba(101, 84, 65, 0.28);
+  --ring: 0 0 0 4px rgba(203, 90, 49, 0.11);
+  --surface-sheen: rgba(255, 255, 255, 0.58);
+  --surface-warm: rgba(255, 250, 242, 0.76);
   --accent: #cb5a31;
   --accent-soft: rgba(203, 90, 49, 0.12);
   --accent-dark: #8f3517;
@@ -76,6 +79,17 @@ body::before {
   mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.55), transparent 72%);
 }
 
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 22%),
+    radial-gradient(ellipse at center, transparent 42%, rgba(52, 39, 25, 0.09) 100%);
+}
+
 ::selection {
   background: rgba(203, 90, 49, 0.22);
 }
@@ -107,8 +121,22 @@ input:focus,
 textarea:focus {
   outline: none;
   border-color: rgba(203, 90, 49, 0.48);
-  box-shadow: 0 0 0 4px rgba(203, 90, 49, 0.1), var(--shadow-sm);
+  box-shadow: var(--ring), var(--shadow-sm);
   background: #fffdf9;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(111, 101, 88, 0.58);
+}
+
+button:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+button:not(:disabled):active {
+  transform: translateY(0) scale(0.99);
 }
 
 textarea {
@@ -164,7 +192,7 @@ textarea {
 .primary-button {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
   color: #fff8f2;
-  box-shadow: 0 14px 28px rgba(155, 61, 31, 0.22);
+  box-shadow: 0 14px 28px rgba(155, 61, 31, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .secondary-button {

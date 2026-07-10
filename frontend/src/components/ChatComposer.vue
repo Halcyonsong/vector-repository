@@ -3,6 +3,7 @@ import { useAppConfig } from '../config/app-config'
 
 interface Props {
   question: string
+  systemPromptInput: string
   useKnowledgeBase: boolean
   allowEmptyContext: boolean
   knowledgeBaseId: string
@@ -10,6 +11,7 @@ interface Props {
   topKInput: string
   similarityThresholdInput: string
   isStreaming: boolean
+  isStopping: boolean
   hasOutputError: boolean
   startupElapsedText: string
   answerElapsedText: string
@@ -25,6 +27,7 @@ const chatText = appConfig.labels.chat
 
 const emit = defineEmits<{
   updateQuestion: [value: string]
+  updateSystemPromptInput: [value: string]
   updateUseKnowledgeBase: [value: boolean]
   updateAllowEmptyContext: [value: boolean]
   updateKnowledgeBaseId: [value: string]
@@ -135,20 +138,33 @@ function handleQuestionKeydown(event: KeyboardEvent): void {
       </div>
     </div>
 
-    <label class="composer-field">
-      <textarea
-        :value="question"
-        rows="4"
-        :placeholder="chatText.questionPlaceholder"
-        @input="emit('updateQuestion', ($event.target as HTMLTextAreaElement).value)"
-        @keydown="handleQuestionKeydown"
-      ></textarea>
-    </label>
+    <div class="composer-input-grid">
+      <label class="composer-field question-field">
+        <span>{{ chatText.questionInputLabel }}</span>
+        <textarea
+          :value="question"
+          rows="4"
+          :placeholder="chatText.questionPlaceholder"
+          @input="emit('updateQuestion', ($event.target as HTMLTextAreaElement).value)"
+          @keydown="handleQuestionKeydown"
+        ></textarea>
+      </label>
+
+      <label class="composer-field system-prompt-field">
+        <span>{{ chatText.systemPromptInputLabel }}</span>
+        <textarea
+          :value="systemPromptInput"
+          rows="4"
+          :placeholder="chatText.systemPromptPlaceholder"
+          @input="emit('updateSystemPromptInput', ($event.target as HTMLTextAreaElement).value)"
+        ></textarea>
+      </label>
+    </div>
 
     <div class="composer-actions">
       <div class="button-row">
-        <button class="secondary-button" :disabled="!isStreaming" @click="emit('stop')">
-          {{ chatText.stopButton }}
+        <button class="secondary-button" :disabled="!isStreaming || isStopping" @click="emit('stop')">
+          {{ isStopping ? chatText.stoppingButton : chatText.stopButton }}
         </button>
         <button class="primary-button" :disabled="isStreaming" @click="emit('send')">
           {{ chatText.sendButton }}

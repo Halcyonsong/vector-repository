@@ -42,6 +42,7 @@ export function useChat(options: UseChatOptions) {
   const hasMoreHistory = ref(false)
   const isLoadingEarlierHistory = ref(false)
   const lastSubmittedQuestion = ref('')
+  const systemPromptInput = ref('')
   const useKnowledgeBase = ref(false)
   const allowEmptyContext = ref(true)
   const topKInput = ref('')
@@ -50,6 +51,7 @@ export function useChat(options: UseChatOptions) {
   const answerText = ref('')
   const statusText = ref<ChatStatus>(CHAT_STATUS.idle)
   const isStreaming = ref(false)
+  const isStopping = ref(false)
 
   const displayMessages = computed<ChatHistoryMessageVO[]>(() => {
     const messages = [...historyMessages.value]
@@ -104,6 +106,7 @@ export function useChat(options: UseChatOptions) {
 
   function finishWithStatus(status: ChatStatus): void {
     isStreaming.value = false
+    isStopping.value = false
     statusText.value = status
     timers.finishActiveTimers()
   }
@@ -278,6 +281,7 @@ export function useChat(options: UseChatOptions) {
         {
           question: question.value,
           sessionId,
+          systemPrompt: systemPromptInput.value.trim(),
           useKnowledgeBase: useKnowledgeBase.value,
           allowEmptyContext: allowEmptyContext.value,
           knowledgeBaseId: options.knowledgeBaseId.value.trim(),
@@ -297,13 +301,16 @@ export function useChat(options: UseChatOptions) {
 
   async function stop(): Promise<void> {
     const sessionId = options.getActiveSessionId()
-    if (!sessionId) {
+    if (!sessionId || !isStreaming.value || isStopping.value) {
       return
     }
+
+    isStopping.value = true
 
     try {
       await stopChat(sessionId)
     } catch (error) {
+      isStopping.value = false
       options.setError(error instanceof Error ? error.message : uiText.stopRequestFailed, getErrorKind(error))
     }
   }
@@ -316,6 +323,7 @@ export function useChat(options: UseChatOptions) {
     isLoadingEarlierHistory,
     displayMessages,
     lastSubmittedQuestion,
+    systemPromptInput,
     useKnowledgeBase,
     allowEmptyContext,
     topKInput,
@@ -324,6 +332,7 @@ export function useChat(options: UseChatOptions) {
     answerText,
     statusText,
     isStreaming,
+    isStopping,
     hasConversation,
     startupElapsedText: timers.startupElapsedText,
     reasoningElapsedText: timers.reasoningElapsedText,
