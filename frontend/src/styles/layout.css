@@ -1,0 +1,242 @@
+.app-shell {
+  min-height: 100vh;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  position: relative;
+  z-index: 1;
+}
+
+.workspace-main {
+  padding: 18px;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.page-view {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  overflow: hidden;
+}
+
+.topbar-card,
+.conversation-panel,
+.reasoning-panel,
+.knowledge-card,
+.feedback-card {
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.78), rgba(255, 248, 238, 0.68)),
+    var(--panel);
+  border: 1px solid rgba(101, 84, 65, 0.13);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(16px);
+}
+
+.topbar-card {
+  border-radius: 22px;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.topbar-session {
+  min-width: 0;
+  flex: 1 1 320px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  border-radius: 18px;
+  padding: 8px 10px;
+  background: rgba(255, 252, 247, 0.82);
+  border: 1px solid var(--line);
+}
+
+.topbar-session span,
+.topbar-inline-item span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.topbar-session strong,
+.topbar-inline-item strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.topbar-session small {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.topbar-card h1,
+.panel-head h2,
+.hero-copy h2 {
+  margin: 6px 0 0;
+  font-size: 30px;
+  line-height: 1.1;
+}
+
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.topbar-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.topbar-inline-item {
+  flex: 0 0 auto;
+  min-width: 84px;
+  display: grid;
+  gap: 3px;
+  border-radius: 18px;
+  padding: 8px 10px;
+  background: rgba(255, 252, 247, 0.58);
+  border: 1px solid rgba(101, 84, 65, 0.11);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.48);
+}
+
+.status-item strong {
+  color: var(--accent-dark);
+}
+
+.knowledge-item {
+  min-width: 118px;
+}
+
+.knowledge-item.active {
+  border-color: rgba(203, 90, 49, 0.24);
+  background: rgba(203, 90, 49, 0.1);
+}
+
+.knowledge-item.active strong {
+  color: var(--accent-dark);
+}
+
+.kb-item {
+  flex: 0 1 190px;
+}
+
+.number-item {
+  min-width: 86px;
+}
+
+.status-chip,
+.outline-chip,
+.status-secondary {
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.status-chip {
+  background: rgba(203, 90, 49, 0.12);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.compact-status {
+  padding: 5px 9px;
+  font-size: 12px;
+}
+
+.status-chip.neutral {
+  background: rgba(33, 28, 23, 0.08);
+  color: var(--text);
+}
+
+.status-secondary,
+.outline-chip {
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+@media (max-width: 1180px) {
+  .topbar-card {
+    flex-wrap: wrap;
+  }
+
+  .topbar-session {
+    flex-basis: 100%;
+  }
+}
+
+.active-chip {
+  border-color: rgba(203, 90, 49, 0.24);
+  background: rgba(203, 90, 49, 0.1);
+  color: var(--accent-dark);
+  font-weight: 700;
+}
+
+.feedback-card {
+  border-radius: 20px;
+  padding: 16px 18px;
+}
+
+.feedback-card p {
+  margin: 8px 0 0;
+}
+
+.feedback-card.validation {
+  border-color: rgba(186, 121, 33, 0.28);
+  background: rgba(255, 244, 221, 0.94);
+}
+
+.feedback-card.validation p,
+.feedback-card.validation strong {
+  color: #8b5b12;
+}
+
+.feedback-card.document {
+  border-color: rgba(186, 121, 33, 0.32);
+  background: rgba(255, 247, 230, 0.94);
+}
+
+.feedback-card.document p,
+.feedback-card.document strong {
+  color: #8b5b12;
+}
+
+.feedback-card.system {
+  border-color: rgba(157, 59, 45, 0.24);
+  background: rgba(255, 238, 233, 0.9);
+}
+
+.feedback-card.system p,
+.feedback-card.system strong {
+  color: var(--error);
+}
+
+.feedback-card.interrupted {
+  border-color: rgba(74, 95, 123, 0.22);
+  background: rgba(233, 241, 248, 0.92);
+}
+
+.feedback-card.interrupted p,
+.feedback-card.interrupted strong {
+  color: #36516d;
+}

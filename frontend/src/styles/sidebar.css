@@ -1,0 +1,230 @@
+.workspace-sidebar {
+  padding: 22px 16px 18px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(203, 90, 49, 0.2) 0%, transparent 26%),
+    linear-gradient(180deg, rgba(37, 31, 26, 0.99) 0%, rgba(20, 17, 14, 0.99) 100%),
+    var(--sidebar);
+  color: #f4ecde;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 18px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+  min-height: 0;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 4px 2px;
+}
+
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.brand-subtitle {
+  margin-top: 3px;
+  color: rgba(244, 236, 222, 0.72);
+  font-size: 13px;
+}
+
+.sidebar-nav {
+  display: grid;
+  gap: 8px;
+}
+
+.nav-button,
+.new-session-button {
+  border-radius: 14px;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.nav-button {
+  text-align: left;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f7efe1;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.nav-button.active {
+  background: linear-gradient(135deg, rgba(255, 250, 244, 0.16), rgba(203, 90, 49, 0.12));
+  border-color: rgba(255, 250, 244, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+
+.sidebar-section {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 10px;
+}
+
+.sidebar-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(244, 236, 222, 0.74);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0 4px;
+}
+
+.new-session-button {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: #fffdf7;
+  border: 1px solid transparent;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.new-session-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.session-list {
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 16px;
+  padding: 2px 2px 2px 0;
+}
+
+.grouped-session-list {
+  align-content: start;
+}
+
+.session-group {
+  display: grid;
+  gap: 8px;
+}
+
+.session-group-title {
+  padding: 0 4px;
+  font-size: 11px;
+  color: rgba(244, 236, 222, 0.54);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.session-group-items {
+  display: grid;
+  gap: 6px;
+}
+
+.session-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.session-select-button {
+  min-width: 0;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: inherit;
+  text-align: left;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
+}
+
+.session-select-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(1px);
+}
+
+.session-select-button.active {
+  background: linear-gradient(135deg, rgba(255, 247, 236, 0.16), rgba(203, 90, 49, 0.1));
+  border-color: rgba(255, 247, 236, 0.2);
+  box-shadow: inset 3px 0 0 rgba(203, 90, 49, 0.78);
+}
+
+.session-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.session-menu-trigger {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(244, 236, 222, 0.82);
+  border: 1px solid transparent;
+  font-size: 16px;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.session-menu-trigger:hover,
+.session-menu-trigger.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.session-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 112px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(35, 30, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  display: grid;
+  gap: 4px;
+  z-index: 20;
+}
+
+.session-menu-item {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: transparent;
+  color: #f7efe1;
+  text-align: left;
+}
+
+.session-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.session-menu-item.danger {
+  color: #ffd1c4;
+}
+
+.session-title {
+  display: block;
+  min-width: 0;
+  font-weight: 600;
+}
+
+.only-title {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f7efe1;
+  font-size: 14px;
+  line-height: 1.35;
+}

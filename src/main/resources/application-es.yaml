@@ -1,0 +1,15 @@
+spring:
+  elasticsearch:
+    uris: http://localhost:9200
+    connection-timeout: 5s
+    socket-timeout: 10s
+
+  ai:
+    vectorstore:
+      type: elasticsearch
+      elasticsearch:
+        initialize-schema: true
+        index-name: halcyonsong-es-index
+        embedding-field-name: embedding
+        similarity: cosine
+        dimensions: 1024

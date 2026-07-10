@@ -1,0 +1,33 @@
+# Maven
+/target/
+
+# Logs
+/logs/
+*.log
+
+# IDE
+/.idea/
+*.iml
+/.classpath
+/.project
+/.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Frontend
+/frontend/node_modules/
+/frontend/dist/
+
+# Local env and overrides
+.env
+.env.*
+/application-local.yaml
+/application-local.yml
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+src/main/resources/application-api.yaml

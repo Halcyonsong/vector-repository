@@ -1,0 +1,38 @@
+package io.github.halcyonsong.knowledge.config;
+
+import io.github.halcyonsong.knowledge.constants.KnowledgeMetadataConstants;
+import lombok.RequiredArgsConstructor;
+import org.springframework.ai.rag.advisor.RetrievalAugmentationAdvisor;
+import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
+import org.springframework.ai.rag.retrieval.search.VectorStoreDocumentRetriever;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import org.springframework.stereotype.Component;
+
+@Component
+@RequiredArgsConstructor
+public class RagAdvisorFactory {
+
+    private final VectorStore vectorStore;
+    private final ContextualQueryAugmenter contextualQueryAugmenter;
+
+    public RetrievalAugmentationAdvisor create(String knowledgeBaseId,
+                                               Integer topK,
+                                               Double similarityThreshold) {
+        FilterExpressionBuilder filterExpressionBuilder = new FilterExpressionBuilder();
+
+        VectorStoreDocumentRetriever documentRetriever = VectorStoreDocumentRetriever.builder()
+                .vectorStore(vectorStore)
+                .topK(topK)
+                .similarityThreshold(similarityThreshold)
+                .filterExpression(
+                        filterExpressionBuilder.eq(KnowledgeMetadataConstants.KNOWLEDGE_BASE_ID, knowledgeBaseId).build()
+                )
+                .build();
+
+        return RetrievalAugmentationAdvisor.builder()
+                .documentRetriever(documentRetriever)
+                .queryAugmenter(contextualQueryAugmenter)
+                .build();
+    }
+}

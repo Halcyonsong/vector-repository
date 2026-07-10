@@ -1,0 +1,75 @@
+@media (max-width: 1200px) {
+  .chat-layout,
+  .knowledge-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .reasoning-panel {
+    min-height: 280px;
+  }
+}
+
+@media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
+  .app-shell {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .workspace-sidebar {
+    grid-template-rows: auto auto auto;
+  }
+
+  .workspace-main {
+    padding: 16px;
+    overflow: auto;
+    grid-template-rows: auto;
+  }
+
+  .page-view {
+    height: auto;
+    overflow: visible;
+  }
+
+  .topbar-card,
+  .conversation-panel,
+  .reasoning-panel,
+  .knowledge-card {
+    border-radius: 22px;
+  }
+
+  .topbar-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .message-bubble {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .workspace-sidebar {
+    padding: 18px 14px;
+  }
+
+  .workspace-main {
+    padding: 12px;
+  }
+
+  .conversation-panel,
+  .reasoning-panel,
+  .knowledge-card,
+  .topbar-card {
+    padding: 18px;
+  }
+
+  .topbar-card h1,
+  .panel-head h2,
+  .hero-copy h2 {
+    font-size: 24px;
+  }
+}

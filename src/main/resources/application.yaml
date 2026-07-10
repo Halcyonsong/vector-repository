@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: vector-repository
+  profiles:
+    include:
+      - es
+      - api
+      - redis
+      - log
+      - fileupload
+
+  lifecycle:
+    timeout-per-shutdown-phase: 5s
+
+server:
+  port: 8080
+  shutdown: GRACEFUL
