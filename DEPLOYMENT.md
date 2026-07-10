@@ -62,6 +62,37 @@ curl http://127.0.0.1:9200
 ### 聊天模型 API
 
 编辑或覆盖 `src/main/resources/application-api.yaml` 中的占位项，推荐使用环境变量：
+当前项目目录没有提交的 `application-api.yaml` 请先自行创建到 `src/main/resources/` 目录下。
+
+```yaml
+spring:
+  ai:
+    model:
+      chat: openai
+      embedding: ollama
+
+    openai:
+      # OpenAI 兼容服务地址，例如阿里云百炼、硅基流动、自建兼容网关等
+      base-url: ${OPENAI_BASE_URL:https://your-openai-compatible-base-url}
+      # 请通过环境变量或本地私有配置覆盖，禁止提交真实密钥
+      api-key: ${OPENAI_API_KEY:replace-with-your-api-key}
+
+      chat:
+        options:
+          model: ${OPENAI_CHAT_MODEL:replace-with-your-chat-model}
+
+      embedding:
+        options:
+          # 如果你的 embedding 也走 OpenAI 兼容接口，可改为对应模型名
+          model: ${OPENAI_EMBEDDING_MODEL:text-embedding-v4}
+
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
+      embedding:
+        options:
+          model: ${OLLAMA_EMBEDDING_MODEL:qwen3-embedding:0.6b}
+
+```
 
 ```powershell
 $env:OPENAI_BASE_URL="https://your-openai-compatible-base-url"
@@ -81,6 +112,8 @@ ollama pull qwen3-embedding:0.6b
 ollama list
 ollama ps
 ```
+### 或者直接添加在 `application-api.yaml` 中配置
+
 
 ## 4. 检查提示词配置
 
