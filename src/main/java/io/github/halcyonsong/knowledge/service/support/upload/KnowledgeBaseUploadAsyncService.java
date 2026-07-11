@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KnowledgeBaseUploadAsyncService {
 
-    private static final int BATCH_SIZE = 2;
+    private static final int BATCH_SIZE = 5;
 
     private final VectorStore vectorStore;
     private final KnowledgeBaseStore knowledgeBaseStore;

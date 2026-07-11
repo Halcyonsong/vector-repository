@@ -49,10 +49,36 @@ function isResultPayload(value: unknown): value is Result<unknown> {
 
 async function readJsonSafely(response: Response): Promise<unknown | null> {
   try {
-    return await response.json()
+    return await response.clone().json()
   } catch {
     return null
   }
+}
+
+async function readTextSafely(response: Response): Promise<string> {
+  try {
+    return await response.text()
+  } catch {
+    return ''
+  }
+}
+
+function formatPlainErrorMessage(text: string, fallbackMessage: string): string {
+  const trimmedText = text.trim()
+  if (!trimmedText) {
+    return fallbackMessage
+  }
+
+  const messageMatch = trimmedText.match(/message\s*=\s*([^,\r\n}]+)/)
+  if (messageMatch?.[1]) {
+    return messageMatch[1].trim()
+  }
+
+  return trimmedText
+}
+
+export function normalizeApiErrorMessage(message: string): string {
+  return formatPlainErrorMessage(message, message)
 }
 
 async function fetchSafely(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
@@ -115,7 +141,12 @@ async function buildResponseError(response: Response, fallbackPrefix: string): P
     return buildResultError(jsonPayload, fallbackMessage)
   }
 
-  return new ApiError(fallbackMessage, resolveErrorKind(response.status), response.status)
+  const textPayload = await readTextSafely(response)
+  return new ApiError(
+    formatPlainErrorMessage(textPayload, fallbackMessage),
+    resolveErrorKind(response.status),
+    response.status
+  )
 }
 
 async function parseResult<T>(response: Response): Promise<T> {
@@ -130,11 +161,9 @@ async function parseResult<T>(response: Response): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new ApiError(
-      buildHttpErrorMessage(response, getUiText().requestFailedPrefix),
-      resolveErrorKind(response.status),
-      response.status
-    )
+    const fallbackMessage = buildHttpErrorMessage(response, getUiText().requestFailedPrefix)
+    const textPayload = await readTextSafely(response)
+    throw new ApiError(formatPlainErrorMessage(textPayload, fallbackMessage), resolveErrorKind(response.status), response.status)
   }
 
   throw new ApiError(getUiText().invalidResponse, 'system')

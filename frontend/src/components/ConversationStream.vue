@@ -26,7 +26,7 @@ const streamElement = ref<HTMLElement | null>(null)
 const pullDistance = ref(0)
 const isPointerDown = ref(false)
 const isRebounding = ref(false)
-const copiedAssistantIndex = ref<number | null>(null)
+const copiedMessageIndex = ref<number | null>(null)
 const startY = ref(0)
 const pendingPrependSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(null)
 let releaseTimer: number | null = null
@@ -56,12 +56,14 @@ const latestRoundAction = computed(() => {
       continue
     }
 
-    const userMessage = [...visibleMessages.value.slice(0, index)].reverse().find((item) => item.role === 'user')
+    const userIndex = visibleMessages.value.slice(0, index).findLastIndex((item) => item.role === 'user')
+    const userMessage = userIndex >= 0 ? visibleMessages.value[userIndex] : null
     if (!userMessage?.content) {
       return null
     }
 
     return {
+      userIndex,
       assistantIndex: index,
       userQuestion: userMessage.content
     }
@@ -274,8 +276,16 @@ function resolveMessageText(message: ChatHistoryMessageVO): string {
   return message.content
 }
 
-function shouldShowLatestRoundActions(index: number): boolean {
-  return latestRoundAction.value?.assistantIndex === index
+function shouldShowLatestRoundActions(message: ChatHistoryMessageVO, index: number): boolean {
+  if (message.role === 'assistant') {
+    return latestRoundAction.value?.assistantIndex === index
+  }
+
+  if (message.role === 'user') {
+    return latestRoundAction.value?.userIndex === index
+  }
+
+  return false
 }
 
 async function writeClipboardText(text: string): Promise<void> {
@@ -301,15 +311,15 @@ async function handleCopyLatestRound(index: number, content: string): Promise<vo
   }
 
   await writeClipboardText(content)
-  copiedAssistantIndex.value = index
+  copiedMessageIndex.value = index
   clearTimer(copiedStateTimer)
   copiedStateTimer = window.setTimeout(() => {
-    copiedAssistantIndex.value = null
+    copiedMessageIndex.value = null
   }, 1300)
 }
 
-function isCopiedAssistant(index: number): boolean {
-  return copiedAssistantIndex.value === index
+function isCopiedMessage(index: number): boolean {
+  return copiedMessageIndex.value === index
 }
 
 function handleUndoLatestRound(): void {
@@ -371,16 +381,16 @@ function handleRollbackPointerDown(event: PointerEvent): void {
             </span>
           </div>
           <MessageContent :content="resolveMessageText(message)" />
-          <div v-if="shouldShowLatestRoundActions(index)" class="message-actions" :aria-label="chatText.latestRoundActionsLabel">
+          <div v-if="shouldShowLatestRoundActions(message, index)" class="message-actions" :aria-label="chatText.latestRoundActionsLabel">
             <button
               class="message-action-button"
               type="button"
-              :title="isCopiedAssistant(index) ? chatText.copyDoneTitle : chatText.copyMessageTitle"
-              :aria-label="isCopiedAssistant(index) ? chatText.copyDoneTitle : chatText.copyMessageTitle"
+              :title="isCopiedMessage(index) ? chatText.copyDoneTitle : chatText.copyMessageTitle"
+              :aria-label="isCopiedMessage(index) ? chatText.copyDoneTitle : chatText.copyMessageTitle"
               @pointerdown="handleRollbackPointerDown"
               @click.stop="handleCopyLatestRound(index, resolveMessageText(message))"
             >
-              <UiIcon :name="isCopiedAssistant(index) ? 'check' : 'copy'" />
+              <UiIcon :name="isCopiedMessage(index) ? 'check' : 'copy'" />
             </button>
             <button
               class="message-action-button danger"

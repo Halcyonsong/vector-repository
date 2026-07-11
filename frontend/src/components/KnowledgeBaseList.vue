@@ -28,9 +28,7 @@ const listDescription = computed(() => {
 })
 
 function selectKnowledgeBase(knowledgeBaseId: string): void {
-  if (!isActiveKnowledgeBase(knowledgeBaseId)) {
-    emit('selectKnowledgeBase', knowledgeBaseId)
-  }
+  emit('selectKnowledgeBase', knowledgeBaseId)
 }
 </script>
 

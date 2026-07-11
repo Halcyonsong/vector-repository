@@ -17,6 +17,8 @@ export const DEFAULT_APP_CONFIG = {
     sessionTitleMaxLength: 100,
     reasoningCacheKey: 'vector-repository:latest-reasoning',
     reasoningCacheTtlMs: 30 * 60 * 1000,
+    sessionDraftCacheKey: 'vector-repository:session-drafts',
+    sessionDraftCacheTtlMs: 30 * 60 * 1000,
     uploadTaskPollIntervalMs: 1000
   },
   labels: {
@@ -84,6 +86,8 @@ export const DEFAULT_APP_CONFIG = {
       toggleKnowledgeBase: '启用知识库',
       knowledgeBaseLabel: 'Knowledge Base ID',
       knowledgeBasePlaceholder: '例如 kb001',
+      knowledgeBaseSelectPlaceholder: '选择已有知识库',
+      knowledgeBaseEmptyOption: '暂无知识库',
       topKLabel: 'Top K',
       topKPlaceholder: '默认 {default}, 范围 {min}-{max}',
       similarityThresholdLabel: 'Similarity Threshold',

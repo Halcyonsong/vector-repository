@@ -5,6 +5,7 @@ import {
   getErrorKind,
   getKnowledgeBaseUploadTask,
   listKnowledgeBases,
+  normalizeApiErrorMessage,
   uploadDocument
 } from '../api'
 import type { ErrorKind, KnowledgeBaseUploadTaskVO } from '../types'
@@ -30,6 +31,8 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
   const isKnowledgeBaseListLoading = ref(false)
   const isSubmittingUpload = ref(false)
   const deletingKnowledgeBaseId = ref('')
+  const uploadProgressPercent = ref(0)
+  const activeProgressTaskId = ref('')
   let pollTimer: number | null = null
 
   const selectedFileName = computed(() => {
@@ -48,20 +51,29 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
     return isSubmittingUpload.value || hasActiveUploadTask.value
   })
 
-  const uploadProgressPercent = computed(() => {
-    const task = activeUploadTask.value
-    if (!task) {
-      return 0
-    }
+  function calculateUploadProgress(task: KnowledgeBaseUploadTaskVO): number {
     if (task.status === 'completed') {
       return 100
+    }
+    if (task.status === 'failed') {
+      return uploadProgressPercent.value
     }
     if (!task.totalChunks || task.totalChunks <= 0) {
       return ACTIVE_UPLOAD_STATUSES.has(task.status) ? 8 : 0
     }
 
     return Math.min(99, Math.round((task.processedChunks / task.totalChunks) * 100))
-  })
+  }
+
+  function updateActiveUploadTask(task: KnowledgeBaseUploadTaskVO): void {
+    if (task.taskId !== activeProgressTaskId.value) {
+      activeProgressTaskId.value = task.taskId
+      uploadProgressPercent.value = 0
+    }
+
+    activeUploadTask.value = task
+    uploadProgressPercent.value = Math.max(uploadProgressPercent.value, calculateUploadProgress(task))
+  }
 
   const uploadProgressText = computed(() => {
     const task = activeUploadTask.value
@@ -72,7 +84,7 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
       return knowledgeText.taskCompletedMessage
     }
     if (task.status === 'failed') {
-      return task.errorMessage || knowledgeText.taskFailedMessage
+      return normalizeApiErrorMessage(task.errorMessage || knowledgeText.taskFailedMessage)
     }
     return task.message || knowledgeText.taskPendingMessage
   })
@@ -82,6 +94,13 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
       window.clearTimeout(pollTimer)
       pollTimer = null
     }
+  }
+
+  function resetUploadProgress(): void {
+    clearPollTimer()
+    activeUploadTask.value = null
+    activeProgressTaskId.value = ''
+    uploadProgressPercent.value = 0
   }
 
   function scheduleUploadTaskPolling(taskId: string): void {
@@ -137,7 +156,7 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
   async function pollUploadTask(taskId: string): Promise<void> {
     try {
       const task = await getKnowledgeBaseUploadTask(taskId)
-      activeUploadTask.value = task
+      updateActiveUploadTask(task)
       uploadStatusText.value = uploadProgressText.value
 
       if (!isTaskFinished(task)) {
@@ -152,7 +171,7 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
         return
       }
 
-      options.setError(task.errorMessage || knowledgeText.taskFailedMessage, 'document')
+      options.setError(normalizeApiErrorMessage(task.errorMessage || knowledgeText.taskFailedMessage), 'document')
     } catch (error) {
       clearPollTimer()
       options.setError(error instanceof Error ? error.message : uiText.uploadFailed, getErrorKind(error))
@@ -180,8 +199,9 @@ export function useKnowledgeUpload(options: UseKnowledgeUploadOptions) {
 
     try {
       const targetKnowledgeBaseId = options.knowledgeBaseId.value.trim()
+      resetUploadProgress()
       const task = await uploadDocument(targetKnowledgeBaseId, selectedFile.value)
-      activeUploadTask.value = task
+      updateActiveUploadTask(task)
       uploadStatusText.value = task.message || knowledgeText.taskPendingMessage
       selectedFile.value = null
 

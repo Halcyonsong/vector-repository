@@ -65,6 +65,8 @@ const {
   loadHistory,
   loadEarlierHistory,
   rollbackLatestRound,
+  activateSessionDraft,
+  clearSessionDraft,
   resetConversation,
   send,
   stop
@@ -99,9 +101,10 @@ const {
 
 async function handleCreateSession(): Promise<void> {
   try {
-    await createAndSelectSession()
+    const session = await createAndSelectSession()
     currentView.value = VIEW_MODE.chat
     resetConversation()
+    activateSessionDraft(session.sessionId)
     clearError()
     historyScrollKey.value += 1
   } catch (error) {
@@ -113,6 +116,7 @@ async function handleSelectSession(sessionId: string): Promise<void> {
   try {
     await selectSession(sessionId)
     await loadHistory(sessionId)
+    activateSessionDraft(sessionId)
     historyScrollKey.value += 1
   } catch (error) {
     setError(error instanceof Error ? error.message : appConfig.labels.ui.sessionHistoryFailed, getErrorKind(error))
@@ -125,12 +129,15 @@ async function handleRenameSession(sessionId: string): Promise<void> {
 
 async function handleDeleteSession(sessionId: string): Promise<void> {
   const hasNoActiveSession = await deleteExistingSession(sessionId)
+  clearSessionDraft(sessionId)
   if (hasNoActiveSession) {
     resetConversation()
+    activateSessionDraft('')
     return
   }
 
   await loadHistory(activeSessionId.value)
+  activateSessionDraft(activeSessionId.value)
   historyScrollKey.value += 1
 }
 
@@ -147,8 +154,9 @@ async function handleSend(): Promise<void> {
 
   if (!activeSessionId.value) {
     try {
-      await createAndSelectSession()
+      const session = await createAndSelectSession()
       currentView.value = VIEW_MODE.chat
+      activateSessionDraft(session.sessionId, true)
       resetConversation()
       historyScrollKey.value += 1
     } catch (error) {
@@ -164,6 +172,7 @@ onMounted(async () => {
   try {
     await loadSessions()
     await loadHistory(activeSessionId.value)
+    activateSessionDraft(activeSessionId.value)
     historyScrollKey.value += 1
     await loadKnowledgeBases()
   } catch (error) {
@@ -245,6 +254,7 @@ onMounted(async () => {
           :is-knowledge-base-list-loading="isKnowledgeBaseListLoading"
           :is-uploading="isUploading"
           :deleting-knowledge-base-id="deletingKnowledgeBaseId"
+          :error-state="errorState"
           @update-knowledge-base-id="knowledgeBaseId = $event"
           @select-file="selectFile"
           @select-dropped-file="selectDroppedFile"

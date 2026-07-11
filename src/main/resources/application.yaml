@@ -5,6 +5,7 @@ spring:
     include:
       - es
       - api
+      - prompt
       - redis
       - log
       - fileupload

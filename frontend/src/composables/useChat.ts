@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 import { getErrorKind, listSessionHistory, rollbackLastRound, stopChat, streamChat } from '../api'
 import { useAppConfig } from '../config/app-config'
 import { CHAT_STATUS } from '../constants'
@@ -26,6 +26,14 @@ interface UseChatOptions {
   clearError: () => void
 }
 
+interface SessionDraft {
+  question: string
+  systemPromptInput: string
+  updatedAt: number
+}
+
+type SessionDraftMap = Record<string, SessionDraft>
+
 export function useChat(options: UseChatOptions) {
   const appConfig = useAppConfig()
   const behaviorConfig = appConfig.behavior
@@ -52,6 +60,7 @@ export function useChat(options: UseChatOptions) {
   const statusText = ref<ChatStatus>(CHAT_STATUS.idle)
   const isStreaming = ref(false)
   const isStopping = ref(false)
+  const activeDraftSessionId = ref('')
 
   const displayMessages = computed<ChatHistoryMessageVO[]>(() => {
     const messages = [...historyMessages.value]
@@ -79,6 +88,97 @@ export function useChat(options: UseChatOptions) {
 
   const hasConversation = computed(() => {
     return displayMessages.value.length > 0 || reasoningText.value.length > 0
+  })
+
+  function readDraftMap(): SessionDraftMap {
+    try {
+      const raw = window.localStorage.getItem(behaviorConfig.sessionDraftCacheKey)
+      if (!raw) {
+        return {}
+      }
+
+      const parsed = JSON.parse(raw) as SessionDraftMap
+      const now = Date.now()
+      return Object.fromEntries(
+        Object.entries(parsed).filter(([, draft]) => {
+          return now - draft.updatedAt <= behaviorConfig.sessionDraftCacheTtlMs
+        })
+      )
+    } catch {
+      return {}
+    }
+  }
+
+  function writeDraftMap(draftMap: SessionDraftMap): void {
+    try {
+      window.localStorage.setItem(behaviorConfig.sessionDraftCacheKey, JSON.stringify(draftMap))
+    } catch {
+      // Draft cache should never block chat usage.
+    }
+  }
+
+  function persistDraft(sessionId = activeDraftSessionId.value): void {
+    if (!sessionId) {
+      return
+    }
+
+    const draftMap = readDraftMap()
+    const nextQuestion = question.value
+    const nextSystemPromptInput = systemPromptInput.value
+
+    if (!nextQuestion.trim() && !nextSystemPromptInput.trim()) {
+      delete draftMap[sessionId]
+      writeDraftMap(draftMap)
+      return
+    }
+
+    draftMap[sessionId] = {
+      question: nextQuestion,
+      systemPromptInput: nextSystemPromptInput,
+      updatedAt: Date.now()
+    }
+    writeDraftMap(draftMap)
+  }
+
+  function restoreDraft(sessionId: string): void {
+    const draft = readDraftMap()[sessionId]
+    question.value = draft?.question ?? ''
+    systemPromptInput.value = draft?.systemPromptInput ?? ''
+  }
+
+  function activateSessionDraft(sessionId: string, shouldPreserveCurrentInput = false): void {
+    if (activeDraftSessionId.value && activeDraftSessionId.value !== sessionId) {
+      persistDraft(activeDraftSessionId.value)
+    }
+
+    activeDraftSessionId.value = sessionId
+
+    if (shouldPreserveCurrentInput) {
+      persistDraft(sessionId)
+      return
+    }
+
+    if (!sessionId) {
+      question.value = ''
+      systemPromptInput.value = ''
+      return
+    }
+
+    restoreDraft(sessionId)
+  }
+
+  function clearSessionDraft(sessionId: string): void {
+    if (!sessionId) {
+      return
+    }
+
+    const draftMap = readDraftMap()
+    delete draftMap[sessionId]
+    writeDraftMap(draftMap)
+  }
+
+  watch([question, systemPromptInput], () => {
+    persistDraft()
   })
 
   function resetHistoryPaging(): void {
@@ -343,6 +443,8 @@ export function useChat(options: UseChatOptions) {
     loadHistory,
     loadEarlierHistory,
     rollbackLatestRound,
+    activateSessionDraft,
+    clearSessionDraft,
     resetConversation,
     send,
     stop

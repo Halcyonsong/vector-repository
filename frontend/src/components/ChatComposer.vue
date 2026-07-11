@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
 import { useAppConfig } from '../config/app-config'
 
 interface Props {
@@ -19,11 +20,13 @@ interface Props {
   showAnswerTimer: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const appConfig = useAppConfig()
 const behaviorConfig = appConfig.behavior
 const chatText = appConfig.labels.chat
+const isKnowledgeBasePickerOpen = ref(false)
+const shouldFilterKnowledgeBases = ref(false)
 
 const emit = defineEmits<{
   updateQuestion: [value: string]
@@ -41,6 +44,51 @@ function formatPlaceholder(template: string, values: Record<string, string | num
   return Object.entries(values).reduce((result, [key, value]) => {
     return result.replace(`{${key}}`, String(value))
   }, template)
+}
+
+const filteredKnowledgeBases = computed(() => {
+  const keyword = shouldFilterKnowledgeBases.value ? props.knowledgeBaseId.trim().toLowerCase() : ''
+
+  if (!keyword) {
+    return props.knowledgeBases
+  }
+
+  return props.knowledgeBases.filter((knowledgeBase) => {
+    return knowledgeBase.toLowerCase().includes(keyword)
+  })
+})
+
+function emitKnowledgeBaseId(value: string): void {
+  emit('updateKnowledgeBaseId', value)
+}
+
+function updateKnowledgeBaseId(value: string): void {
+  shouldFilterKnowledgeBases.value = true
+  emitKnowledgeBaseId(value)
+}
+
+function selectKnowledgeBaseId(value: string): void {
+  shouldFilterKnowledgeBases.value = false
+  emitKnowledgeBaseId(value)
+  isKnowledgeBasePickerOpen.value = false
+}
+
+function openKnowledgeBasePicker(): void {
+  if (props.knowledgeBases.length > 0) {
+    shouldFilterKnowledgeBases.value = false
+    isKnowledgeBasePickerOpen.value = true
+  }
+}
+
+function closeKnowledgeBasePicker(): void {
+  window.setTimeout(() => {
+    isKnowledgeBasePickerOpen.value = false
+  }, 120)
+}
+
+function toggleKnowledgeBasePicker(): void {
+  shouldFilterKnowledgeBases.value = false
+  isKnowledgeBasePickerOpen.value = !isKnowledgeBasePickerOpen.value && props.knowledgeBases.length > 0
 }
 
 function handleQuestionKeydown(event: KeyboardEvent): void {
@@ -82,15 +130,40 @@ function handleQuestionKeydown(event: KeyboardEvent): void {
 
       <label class="inline-field kb-inline-field">
         <span>{{ chatText.knowledgeBaseLabel }}</span>
-        <input
-          :value="knowledgeBaseId"
-          :placeholder="chatText.knowledgeBasePlaceholder"
-          list="composer-knowledge-bases"
-          @input="emit('updateKnowledgeBaseId', ($event.target as HTMLInputElement).value)"
-        />
-        <datalist id="composer-knowledge-bases">
-          <option v-for="knowledgeBase in knowledgeBases" :key="knowledgeBase" :value="knowledgeBase" />
-        </datalist>
+        <div class="knowledge-base-combobox">
+          <input
+            :value="knowledgeBaseId"
+            :placeholder="chatText.knowledgeBasePlaceholder"
+            autocomplete="off"
+            @focus="openKnowledgeBasePicker"
+            @blur="closeKnowledgeBasePicker"
+            @input="updateKnowledgeBaseId(($event.target as HTMLInputElement).value)"
+          />
+          <button
+            class="knowledge-base-picker-button"
+            type="button"
+            :disabled="knowledgeBases.length === 0"
+            :aria-label="chatText.knowledgeBaseSelectPlaceholder"
+            @mousedown.prevent
+            @click="toggleKnowledgeBasePicker"
+          >
+            <span></span>
+          </button>
+          <div v-if="isKnowledgeBasePickerOpen" class="knowledge-base-dropdown">
+            <button
+              v-for="knowledgeBase in filteredKnowledgeBases"
+              :key="knowledgeBase"
+              class="knowledge-base-option"
+              type="button"
+              @mousedown.prevent="selectKnowledgeBaseId(knowledgeBase)"
+            >
+              {{ knowledgeBase }}
+            </button>
+            <div v-if="filteredKnowledgeBases.length === 0" class="knowledge-base-empty-option">
+              {{ chatText.knowledgeBaseEmptyOption }}
+            </div>
+          </div>
+        </div>
       </label>
 
       <label class="inline-field">

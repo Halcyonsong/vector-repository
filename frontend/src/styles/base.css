@@ -96,6 +96,7 @@ body::after {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -107,6 +108,7 @@ button {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -118,6 +120,7 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   outline: none;
   border-color: rgba(203, 90, 49, 0.48);
@@ -128,6 +131,12 @@ textarea:focus {
 input::placeholder,
 textarea::placeholder {
   color: rgba(111, 101, 88, 0.58);
+}
+
+select:disabled {
+  color: rgba(111, 101, 88, 0.54);
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 button:focus-visible {

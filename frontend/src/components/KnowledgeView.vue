@@ -4,7 +4,7 @@ import KnowledgeBaseList from './KnowledgeBaseList.vue'
 import KnowledgeHero from './KnowledgeHero.vue'
 import KnowledgeUploadForm from './KnowledgeUploadForm.vue'
 import UiIcon from './UiIcon.vue'
-import type { KnowledgeBaseUploadTaskVO } from '../types'
+import type { AppErrorState, KnowledgeBaseUploadTaskVO } from '../types'
 
 interface Props {
   knowledgeBaseId: string
@@ -17,6 +17,7 @@ interface Props {
   isKnowledgeBaseListLoading: boolean
   isUploading: boolean
   deletingKnowledgeBaseId: string
+  errorState: AppErrorState | null
 }
 
 defineProps<Props>()
@@ -61,6 +62,11 @@ const emit = defineEmits<{
     <section class="knowledge-workbench">
       <div class="knowledge-main-column">
         <KnowledgeHero :knowledge-base-id="knowledgeBaseId" :selected-file-name="selectedFileName" />
+
+        <section v-if="errorState" :class="['feedback-card', 'knowledge-feedback-card', errorState.kind]">
+          <strong>{{ errorState.title }}</strong>
+          <p>{{ errorState.message }}</p>
+        </section>
 
         <KnowledgeUploadForm
           :knowledge-base-id="knowledgeBaseId"
